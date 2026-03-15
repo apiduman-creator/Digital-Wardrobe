@@ -14,7 +14,12 @@ export type Category =
   | "sleepwear"
   | "other";
 
-export type Season = "spring" | "summer" | "fall" | "winter" | "all";
+// Season for individual items — no "all", use seasons[] instead
+export type Season = "spring" | "summer" | "fall" | "winter";
+
+// OutfitSeason keeps "all" as an option for outfit-level filtering
+export type OutfitSeason = Season | "all";
+
 export type Occasion = "casual" | "work" | "formal" | "sport" | "lounge" | "special";
 
 export interface ClosetItem {
@@ -24,7 +29,7 @@ export interface ClosetItem {
   color: string;
   colorHex: string;
   brand?: string;
-  season: Season;
+  seasons: Season[];        // multi-season array
   occasion: Occasion;
   notes?: string;
   favorite: boolean;
@@ -39,7 +44,7 @@ export interface Outfit {
   name: string;
   itemIds: string[];
   occasion: Occasion;
-  season: Season;
+  season: OutfitSeason;    // single season filter for outfit generation
   notes?: string;
   favorite: boolean;
   createdAt: string;
@@ -71,6 +76,21 @@ function generateId(): string {
   return Date.now().toString() + Math.random().toString(36).substr(2, 9);
 }
 
+// Migrate items from old format (season: string) to new format (seasons: Season[])
+function migrateItem(raw: any): ClosetItem {
+  if (Array.isArray(raw.seasons)) return raw as ClosetItem;
+  // Old format had `season` as a single string
+  const oldSeason: string = raw.season ?? "all";
+  let seasons: Season[];
+  if (oldSeason === "all") {
+    seasons = ["spring", "summer", "fall", "winter"];
+  } else {
+    seasons = [oldSeason as Season];
+  }
+  const { season: _dropped, ...rest } = raw;
+  return { ...rest, seasons } as ClosetItem;
+}
+
 // ─── Context ──────────────────────────────────────────────────────────────────
 const ClosetContext = createContext<ClosetContextType | null>(null);
 
@@ -79,7 +99,6 @@ export function ClosetProvider({ children }: { children: ReactNode }) {
   const [outfits, setOutfits] = useState<Outfit[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // Load from JSON storage on mount
   useEffect(() => {
     const load = async () => {
       try {
@@ -87,7 +106,10 @@ export function ClosetProvider({ children }: { children: ReactNode }) {
           AsyncStorage.getItem(STORAGE_KEY_ITEMS),
           AsyncStorage.getItem(STORAGE_KEY_OUTFITS),
         ]);
-        if (itemsJson) setItems(JSON.parse(itemsJson));
+        if (itemsJson) {
+          const parsed: any[] = JSON.parse(itemsJson);
+          setItems(parsed.map(migrateItem));
+        }
         if (outfitsJson) setOutfits(JSON.parse(outfitsJson));
       } catch (e) {
         console.error("Failed to load closet data:", e);
@@ -118,16 +140,22 @@ export function ClosetProvider({ children }: { children: ReactNode }) {
   }, [items]);
 
   const updateItem = useCallback(async (id: string, updates: Partial<ClosetItem>) => {
-    await persistItems(
-      items.map((i) => i.id === id ? { ...i, ...updates, updatedAt: new Date().toISOString() } : i)
+    const next = items.map((i) =>
+      i.id === id ? { ...i, ...updates, updatedAt: new Date().toISOString() } : i
     );
+    await persistItems(next);
   }, [items]);
 
   const deleteItem = useCallback(async (id: string) => {
-    await persistItems(items.filter((i) => i.id !== id));
-    await persistOutfits(
-      outfits.map((o) => ({ ...o, itemIds: o.itemIds.filter((oid) => oid !== id) }))
-    );
+    const nextItems = items.filter((i) => i.id !== id);
+    const nextOutfits = outfits.map((o) => ({
+      ...o,
+      itemIds: o.itemIds.filter((oid) => oid !== id),
+    }));
+    await AsyncStorage.setItem(STORAGE_KEY_ITEMS, JSON.stringify(nextItems));
+    await AsyncStorage.setItem(STORAGE_KEY_OUTFITS, JSON.stringify(nextOutfits));
+    setItems(nextItems);
+    setOutfits(nextOutfits);
   }, [items, outfits]);
 
   const toggleFavorite = useCallback(async (id: string) => {

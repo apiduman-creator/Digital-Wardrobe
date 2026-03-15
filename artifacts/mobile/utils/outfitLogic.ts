@@ -1,4 +1,4 @@
-import { ClosetItem, Season, Occasion } from "@/context/ClosetContext";
+import { ClosetItem, Season, OutfitSeason, Occasion } from "@/context/ClosetContext";
 
 export interface GeneratedOutfit {
   top: ClosetItem | null;
@@ -14,14 +14,16 @@ function pickRandom<T>(arr: T[]): T | null {
 
 export function generateRandomOutfit(
   items: ClosetItem[],
-  season?: Season,
+  season?: OutfitSeason,
   occasion?: Occasion
 ): GeneratedOutfit {
   const filterItems = (cats: ClosetItem["category"][]) => {
     return items.filter((item) => {
       const catMatch = cats.includes(item.category);
       const seasonMatch =
-        !season || item.season === "all" || item.season === season;
+        !season ||
+        season === "all" ||
+        item.seasons.includes(season as Season);
       const occasionMatch = !occasion || item.occasion === occasion;
       return catMatch && seasonMatch && occasionMatch;
     });
@@ -56,9 +58,18 @@ export function suggestOutfitName(outfit: GeneratedOutfit): string {
 }
 
 export function getColorContrastText(hex: string): string {
-  const r = parseInt(hex.slice(1, 3), 16);
-  const g = parseInt(hex.slice(3, 5), 16);
-  const b = parseInt(hex.slice(5, 7), 16);
+  const cleaned = hex.startsWith("#") ? hex : "#" + hex;
+  if (cleaned.length < 7) return "#1A1A1A";
+  const r = parseInt(cleaned.slice(1, 3), 16);
+  const g = parseInt(cleaned.slice(3, 5), 16);
+  const b = parseInt(cleaned.slice(5, 7), 16);
   const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
   return luminance > 0.6 ? "#1A1A1A" : "#FFFFFF";
 }
+
+export const SEASON_LABELS: Record<Season, string> = {
+  spring: "İlkbahar",
+  summer: "Yaz",
+  fall: "Sonbahar",
+  winter: "Kış",
+};

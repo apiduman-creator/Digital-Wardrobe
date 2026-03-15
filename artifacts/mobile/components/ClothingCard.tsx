@@ -72,7 +72,7 @@ export function ClothingCard({ item, onPress, onFavoriteToggle, size = "large" }
             </Text>
             <Text style={[styles.dot, { color: C.textTertiary }]}>·</Text>
             <Text style={[styles.tag, { color: C.textTertiary }]}>
-              {item.season}
+              {(item.seasons ?? []).slice(0, 2).join(", ")}
             </Text>
           </View>
         </View>

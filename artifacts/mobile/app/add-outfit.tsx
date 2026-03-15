@@ -14,7 +14,7 @@ import { router } from "expo-router";
 import * as Haptics from "expo-haptics";
 import Animated, { useSharedValue, useAnimatedStyle, withSpring } from "react-native-reanimated";
 import Colors, { SEASONS, OCCASIONS } from "@/constants/colors";
-import { useCloset, Season, Occasion, ClosetItem } from "@/context/ClosetContext";
+import { useCloset, OutfitSeason, Occasion, ClosetItem } from "@/context/ClosetContext";
 import { generateRandomOutfit, GeneratedOutfit, suggestOutfitName } from "@/utils/outfitLogic";
 import { getColorContrastText } from "@/utils/outfitLogic";
 
@@ -90,7 +90,7 @@ export default function AddOutfitScreen() {
 
   const [generated, setGenerated] = useState<GeneratedOutfit | null>(null);
   const [name, setName] = useState("");
-  const [season, setSeason] = useState<Season>("all");
+  const [season, setSeason] = useState<OutfitSeason>("all");
   const [occasion, setOccasion] = useState<Occasion>("casual");
   const [saving, setSaving] = useState(false);
 
@@ -167,7 +167,7 @@ export default function AddOutfitScreen() {
           <ChipRow
             options={seasonOptions}
             selected={season}
-            onSelect={(v) => setSeason(v as Season)}
+            onSelect={(v) => setSeason(v as OutfitSeason)}
           />
         </View>
 
