@@ -1,22 +1,24 @@
 openapi: 3.1.0
 info:
-  # Do not change the title, if the title changes, the import paths will be broken
   title: Api
   version: 0.1.0
-  description: API specification
+  description: Digital Closet API
 servers:
   - url: /api
     description: Base API path
 tags:
   - name: health
     description: Health operations
+  - name: closet
+    description: Closet item operations
+  - name: outfits
+    description: Outfit operations
 paths:
   /healthz:
     get:
       operationId: healthCheck
       tags: [health]
       summary: Health check
-      description: Returns server health status
       responses:
         "200":
           description: Healthy
@@ -24,6 +26,199 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+
+  /closet/items:
+    get:
+      operationId: getClosetItems
+      tags: [closet]
+      summary: Get all closet items
+      parameters:
+        - name: category
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: season
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: color
+          in: query
+          required: false
+          schema:
+            type: string
+      responses:
+        "200":
+          description: List of closet items
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ClosetItem"
+    post:
+      operationId: createClosetItem
+      tags: [closet]
+      summary: Create a closet item
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateClosetItemRequest"
+      responses:
+        "201":
+          description: Created item
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ClosetItem"
+
+  /closet/items/{id}:
+    get:
+      operationId: getClosetItem
+      tags: [closet]
+      summary: Get a closet item
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Closet item
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ClosetItem"
+        "404":
+          description: Not found
+    put:
+      operationId: updateClosetItem
+      tags: [closet]
+      summary: Update a closet item
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateClosetItemRequest"
+      responses:
+        "200":
+          description: Updated item
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ClosetItem"
+    delete:
+      operationId: deleteClosetItem
+      tags: [closet]
+      summary: Delete a closet item
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "204":
+          description: Deleted
+
+  /outfits:
+    get:
+      operationId: getOutfits
+      tags: [outfits]
+      summary: Get all outfits
+      responses:
+        "200":
+          description: List of outfits
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Outfit"
+    post:
+      operationId: createOutfit
+      tags: [outfits]
+      summary: Create an outfit
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateOutfitRequest"
+      responses:
+        "201":
+          description: Created outfit
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Outfit"
+
+  /outfits/{id}:
+    get:
+      operationId: getOutfit
+      tags: [outfits]
+      summary: Get an outfit
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Outfit
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Outfit"
+    put:
+      operationId: updateOutfit
+      tags: [outfits]
+      summary: Update an outfit
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateOutfitRequest"
+      responses:
+        "200":
+          description: Updated outfit
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Outfit"
+    delete:
+      operationId: deleteOutfit
+      tags: [outfits]
+      summary: Delete an outfit
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "204":
+          description: Deleted
+
 components:
   schemas:
     HealthStatus:
@@ -34,3 +229,140 @@ components:
       required:
         - status
 
+    ClosetItem:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        category:
+          type: string
+          enum: [tops, bottoms, dresses, outerwear, shoes, accessories, bags, activewear, sleepwear, other]
+        color:
+          type: string
+        brand:
+          type: string
+        season:
+          type: string
+          enum: [spring, summer, fall, winter, all]
+        occasion:
+          type: string
+          enum: [casual, work, formal, sport, lounge, special]
+        imageUri:
+          type: string
+        notes:
+          type: string
+        favorite:
+          type: boolean
+        wearCount:
+          type: integer
+        lastWorn:
+          type: string
+          nullable: true
+        createdAt:
+          type: string
+        updatedAt:
+          type: string
+      required:
+        - id
+        - name
+        - category
+        - color
+        - season
+        - occasion
+        - favorite
+        - wearCount
+        - createdAt
+        - updatedAt
+
+    CreateClosetItemRequest:
+      type: object
+      properties:
+        name:
+          type: string
+        category:
+          type: string
+          enum: [tops, bottoms, dresses, outerwear, shoes, accessories, bags, activewear, sleepwear, other]
+        color:
+          type: string
+        brand:
+          type: string
+        season:
+          type: string
+          enum: [spring, summer, fall, winter, all]
+        occasion:
+          type: string
+          enum: [casual, work, formal, sport, lounge, special]
+        imageUri:
+          type: string
+        notes:
+          type: string
+        favorite:
+          type: boolean
+      required:
+        - name
+        - category
+        - color
+        - season
+        - occasion
+
+    Outfit:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        itemIds:
+          type: array
+          items:
+            type: string
+        occasion:
+          type: string
+          enum: [casual, work, formal, sport, lounge, special]
+        season:
+          type: string
+          enum: [spring, summer, fall, winter, all]
+        notes:
+          type: string
+        favorite:
+          type: boolean
+        createdAt:
+          type: string
+        updatedAt:
+          type: string
+      required:
+        - id
+        - name
+        - itemIds
+        - occasion
+        - season
+        - favorite
+        - createdAt
+        - updatedAt
+
+    CreateOutfitRequest:
+      type: object
+      properties:
+        name:
+          type: string
+        itemIds:
+          type: array
+          items:
+            type: string
+        occasion:
+          type: string
+          enum: [casual, work, formal, sport, lounge, special]
+        season:
+          type: string
+          enum: [spring, summer, fall, winter, all]
+        notes:
+          type: string
+        favorite:
+          type: boolean
+      required:
+        - name
+        - itemIds
+        - occasion
+        - season
