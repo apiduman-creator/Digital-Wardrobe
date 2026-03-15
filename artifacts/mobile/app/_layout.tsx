@@ -15,6 +15,7 @@ import { SafeAreaProvider } from "react-native-safe-area-context";
 
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { ClosetProvider } from "@/context/ClosetContext";
+import { CalendarProvider } from "@/context/CalendarContext";
 import Colors from "@/constants/colors";
 
 SplashScreen.preventAutoHideAsync();
@@ -86,7 +87,9 @@ export default function RootLayout() {
           <GestureHandlerRootView>
             <KeyboardProvider>
               <ClosetProvider>
-                <RootLayoutNav />
+                <CalendarProvider>
+                  <RootLayoutNav />
+                </CalendarProvider>
               </ClosetProvider>
             </KeyboardProvider>
           </GestureHandlerRootView>

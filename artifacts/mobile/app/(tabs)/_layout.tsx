@@ -21,6 +21,10 @@ function NativeTabLayout() {
         <Icon sf={{ default: "sparkles", selected: "sparkles" }} />
         <Label>Kombins</Label>
       </NativeTabs.Trigger>
+      <NativeTabs.Trigger name="calendar">
+        <Icon sf={{ default: "calendar", selected: "calendar.fill" }} />
+        <Label>Takvim</Label>
+      </NativeTabs.Trigger>
     </NativeTabs>
   );
 }
@@ -31,7 +35,6 @@ function ClassicTabLayout() {
   const isIOS = Platform.OS === "ios";
   const isWeb = Platform.OS === "web";
   const C = Colors.light;
-  const insets = useSafeAreaInsets();
 
   return (
     <Tabs
@@ -41,7 +44,7 @@ function ClassicTabLayout() {
         headerShown: false,
         tabBarStyle: {
           position: "absolute",
-          backgroundColor: isIOS ? "transparent" : isWeb ? "#FFFFFF" : C.backgroundSecondary,
+          backgroundColor: isIOS ? "transparent" : isWeb ? C.backgroundSecondary : C.backgroundSecondary,
           borderTopWidth: isWeb ? 1 : 0,
           borderTopColor: C.separator,
           elevation: 0,
@@ -80,6 +83,18 @@ function ClassicTabLayout() {
               <SymbolView name="sparkles" tintColor={color} size={24} />
             ) : (
               <Feather name="layers" size={22} color={color} />
+            ),
+        }}
+      />
+      <Tabs.Screen
+        name="calendar"
+        options={{
+          title: "Takvim",
+          tabBarIcon: ({ color }) =>
+            isIOS ? (
+              <SymbolView name="calendar" tintColor={color} size={24} />
+            ) : (
+              <Feather name="calendar" size={22} color={color} />
             ),
         }}
       />
