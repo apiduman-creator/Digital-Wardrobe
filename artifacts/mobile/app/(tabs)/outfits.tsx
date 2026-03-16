@@ -29,7 +29,7 @@ const FILTERS = [
 export default function OutfitsScreen() {
   const C = Colors.light;
   const insets = useSafeAreaInsets();
-  const { outfits, items, toggleOutfitFavorite, loading } = useCloset();
+  const { outfits, items, toggleOutfitFavorite, deleteOutfit, loading } = useCloset();
   const [filter, setFilter] = useState("all");
 
   const filtered = useMemo(() => {
@@ -48,13 +48,22 @@ export default function OutfitsScreen() {
             <Text style={[styles.subtitle, { color: C.textSecondary }]}>Kombin</Text>
             <Text style={[styles.title, { color: C.text }]}>Koleksiyonu</Text>
           </View>
-          <Pressable
-            onPress={() => router.push("/add-outfit")}
-            style={[styles.generateBtn, { backgroundColor: C.text }]}
-          >
-            <Feather name="shuffle" size={16} color="#FFFFFF" />
-            <Text style={styles.generateBtnText}>Kombin Oluştur</Text>
-          </Pressable>
+          <View style={styles.headerBtns}>
+            <Pressable
+              onPress={() => router.push("/create-outfit-manual")}
+              style={[styles.headerBtn, { backgroundColor: C.chip, borderColor: C.cardBorder }]}
+            >
+              <Feather name="plus" size={15} color={C.text} />
+              <Text style={[styles.headerBtnText, { color: C.text }]}>Manuel</Text>
+            </Pressable>
+            <Pressable
+              onPress={() => router.push("/add-outfit")}
+              style={[styles.generateBtn, { backgroundColor: C.text }]}
+            >
+              <Feather name="shuffle" size={15} color="#FFFFFF" />
+              <Text style={styles.generateBtnText}>Rastgele</Text>
+            </Pressable>
+          </View>
         </View>
       </View>
 
@@ -66,22 +75,9 @@ export default function OutfitsScreen() {
             <Pressable
               key={f.value}
               onPress={() => setFilter(f.value)}
-              style={[
-                styles.chip,
-                {
-                  backgroundColor: isSelected ? C.tint : C.chip,
-                },
-              ]}
+              style={[styles.chip, { backgroundColor: isSelected ? C.tint : C.chip }]}
             >
-              <Text
-                style={[
-                  styles.chipText,
-                  {
-                    color: isSelected ? "#FFF" : C.textSecondary,
-                    fontFamily: isSelected ? "Inter_600SemiBold" : "Inter_500Medium",
-                  },
-                ]}
-              >
+              <Text style={[styles.chipText, { color: isSelected ? "#FFF" : C.textSecondary, fontFamily: isSelected ? "Inter_600SemiBold" : "Inter_500Medium" }]}>
                 {f.label}
               </Text>
             </Pressable>
@@ -98,11 +94,7 @@ export default function OutfitsScreen() {
         <EmptyState
           icon="layers"
           title={outfits.length === 0 ? "Henüz kombin yok" : "Eşleşme yok"}
-          subtitle={
-            outfits.length === 0
-              ? "Gardırobunuzdaki parçalardan kombin oluşturun."
-              : "Farklı bir filtre deneyin."
-          }
+          subtitle={outfits.length === 0 ? "Gardırobunuzdaki parçalardan kombin oluşturun." : "Farklı bir filtre deneyin."}
           actionLabel={outfits.length === 0 ? "İlk Kombini Oluştur" : undefined}
           onAction={outfits.length === 0 ? () => router.push("/add-outfit") : undefined}
         />
@@ -110,22 +102,16 @@ export default function OutfitsScreen() {
         <FlatList
           data={filtered}
           keyExtractor={(outfit) => outfit.id}
-          contentContainerStyle={[
-            styles.list,
-            {
-              paddingBottom: Platform.OS === "web" ? 34 + 84 : insets.bottom + 100,
-            },
-          ]}
+          contentContainerStyle={[styles.list, { paddingBottom: Platform.OS === "web" ? 34 + 84 : insets.bottom + 100 }]}
           showsVerticalScrollIndicator={false}
           contentInsetAdjustmentBehavior="automatic"
           renderItem={({ item: outfit }) => (
             <OutfitCard
               outfit={outfit}
               items={items}
-              onPress={() =>
-                router.push({ pathname: "/outfit/[id]", params: { id: outfit.id } })
-              }
+              onPress={() => router.push({ pathname: "/outfit/[id]", params: { id: outfit.id } })}
               onFavoriteToggle={() => toggleOutfitFavorite(outfit.id)}
+              onDelete={() => deleteOutfit(outfit.id)}
             />
           )}
           ItemSeparatorComponent={() => <View style={{ height: 12 }} />}
@@ -137,24 +123,21 @@ export default function OutfitsScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  header: {
-    paddingHorizontal: 20,
-    paddingBottom: 12,
-  },
-  headerTop: {
+  header: { paddingHorizontal: 20, paddingBottom: 12 },
+  headerTop: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
+  subtitle: { fontSize: 14, fontFamily: "Inter_400Regular" },
+  title: { fontSize: 32, fontFamily: "Inter_700Bold", letterSpacing: -0.5 },
+  headerBtns: { flexDirection: "row", alignItems: "center", gap: 8, marginTop: 8 },
+  headerBtn: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "space-between",
+    gap: 6,
+    paddingHorizontal: 14,
+    paddingVertical: 11,
+    borderRadius: 24,
+    borderWidth: 1,
   },
-  subtitle: {
-    fontSize: 14,
-    fontFamily: "Inter_400Regular",
-  },
-  title: {
-    fontSize: 32,
-    fontFamily: "Inter_700Bold",
-    letterSpacing: -0.5,
-  },
+  headerBtnText: { fontSize: 13, fontFamily: "Inter_600SemiBold" },
   generateBtn: {
     flexDirection: "row",
     alignItems: "center",
@@ -162,35 +145,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 11,
     borderRadius: 24,
-    marginTop: 8,
   },
-  generateBtnText: {
-    color: "#FFFFFF",
-    fontSize: 13,
-    fontFamily: "Inter_600SemiBold",
-  },
-  filterRow: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    paddingHorizontal: 16,
-    gap: 8,
-    marginBottom: 12,
-  },
-  chip: {
-    paddingHorizontal: 14,
-    paddingVertical: 7,
-    borderRadius: 20,
-  },
-  chipText: {
-    fontSize: 13,
-  },
-  list: {
-    paddingHorizontal: 16,
-    paddingTop: 4,
-  },
-  centered: {
-    flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
-  },
+  generateBtnText: { color: "#FFFFFF", fontSize: 13, fontFamily: "Inter_600SemiBold" },
+  filterRow: { flexDirection: "row", flexWrap: "wrap", paddingHorizontal: 16, gap: 8, marginBottom: 12 },
+  chip: { paddingHorizontal: 14, paddingVertical: 7, borderRadius: 20 },
+  chipText: { fontSize: 13 },
+  list: { paddingHorizontal: 16, paddingTop: 4 },
+  centered: { flex: 1, alignItems: "center", justifyContent: "center" },
 });

@@ -60,6 +60,13 @@ function RootLayoutNav() {
         name="outfit/[id]"
         options={{ title: "Kombin Detayı" }}
       />
+      <Stack.Screen
+        name="create-outfit-manual"
+        options={{
+          title: "Manuel Kombin Kur",
+          headerStyle: { backgroundColor: C.backgroundSecondary },
+        }}
+      />
     </Stack>
   );
 }

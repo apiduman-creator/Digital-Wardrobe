@@ -345,6 +345,21 @@ export default function ItemDetailScreen() {
           </Pressable>
         </View>
 
+        {/* Create Outfit From This Item */}
+        <Pressable
+          onPress={() => router.push({ pathname: "/create-outfit-manual", params: { startItemId: item.id } })}
+          style={[styles.createOutfitBtn, { backgroundColor: C.chip, borderColor: C.cardBorder }]}
+        >
+          <Feather name="layers" size={18} color={C.tint} />
+          <View style={styles.createOutfitBtnText}>
+            <Text style={[styles.createOutfitBtnTitle, { color: C.text }]}>Bu Ürünle Kombin Kur</Text>
+            <Text style={[styles.createOutfitBtnSub, { color: C.textSecondary }]}>
+              Bu parçayla başlayarak manuel kombin oluştur
+            </Text>
+          </View>
+          <Feather name="chevron-right" size={16} color={C.textTertiary} />
+        </Pressable>
+
         {/* Details */}
         <View style={[styles.detailCard, { backgroundColor: C.card, borderColor: C.cardBorder }]}>
           <DetailRow label="Renk" value={item.color} />
@@ -422,6 +437,20 @@ const styles = StyleSheet.create({
   actionBtn: { flex: 1, alignItems: "center", justifyContent: "center", padding: 12, gap: 4 },
   actionDivider: { width: 1, marginVertical: 12 },
   actionLabel: { fontSize: 10, fontFamily: "Inter_500Medium", textAlign: "center" },
+
+  createOutfitBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    marginHorizontal: 16,
+    marginTop: 10,
+    padding: 14,
+    borderRadius: 14,
+    borderWidth: 1,
+  },
+  createOutfitBtnText: { flex: 1, gap: 2 },
+  createOutfitBtnTitle: { fontSize: 14, fontFamily: "Inter_600SemiBold" },
+  createOutfitBtnSub: { fontSize: 11, fontFamily: "Inter_400Regular" },
 
   detailCard: { marginHorizontal: 16, marginTop: 14, borderRadius: 16, borderWidth: 1, overflow: "hidden" },
   detailRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", paddingHorizontal: 16, paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: "#F0EBE4" },

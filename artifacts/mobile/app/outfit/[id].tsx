@@ -1,11 +1,10 @@
-import React from "react";
+import React, { useState } from "react";
 import {
   View,
   Text,
   Pressable,
   StyleSheet,
   ScrollView,
-  Alert,
   Platform,
 } from "react-native";
 import { Feather } from "@expo/vector-icons";
@@ -21,6 +20,9 @@ export default function OutfitDetailScreen() {
   const insets = useSafeAreaInsets();
   const { id } = useLocalSearchParams<{ id: string }>();
   const { outfits, items, deleteOutfit, toggleOutfitFavorite } = useCloset();
+
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   const outfit = outfits.find((o) => o.id === id);
 
@@ -38,18 +40,12 @@ export default function OutfitDetailScreen() {
     .map((oid) => items.find((i) => i.id === oid))
     .filter(Boolean) as typeof items;
 
-  const handleDelete = () => {
-    Alert.alert("Kombini Sil", `"${outfit.name}" silinecek. Emin misiniz?`, [
-      { text: "İptal", style: "cancel" },
-      {
-        text: "Sil",
-        style: "destructive",
-        onPress: async () => {
-          await deleteOutfit(outfit.id);
-          router.back();
-        },
-      },
-    ]);
+  const handleDelete = async () => {
+    if (deleting) return;
+    setDeleting(true);
+    if (Platform.OS !== "web") Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+    await deleteOutfit(outfit.id);
+    router.replace("/(tabs)/outfits");
   };
 
   const handleFavorite = async () => {
@@ -59,9 +55,7 @@ export default function OutfitDetailScreen() {
 
   const formatDate = (iso: string) =>
     new Date(iso).toLocaleDateString("tr-TR", {
-      day: "numeric",
-      month: "long",
-      year: "numeric",
+      day: "numeric", month: "long", year: "numeric",
     });
 
   return (
@@ -94,24 +88,37 @@ export default function OutfitDetailScreen() {
         </View>
 
         <View style={styles.headerActions}>
-          <Pressable
-            onPress={handleFavorite}
-            style={[styles.iconBtn, { backgroundColor: C.chip }]}
-          >
-            <Feather
-              name="heart"
-              size={20}
-              color={outfit.favorite ? "#E05252" : C.textSecondary}
-            />
+          <Pressable onPress={handleFavorite} style={[styles.iconBtn, { backgroundColor: C.chip }]}>
+            <Feather name="heart" size={20} color={outfit.favorite ? "#E05252" : C.textSecondary} />
           </Pressable>
           <Pressable
-            onPress={handleDelete}
-            style={[styles.iconBtn, { backgroundColor: C.chip }]}
+            onPress={() => setConfirmDelete(true)}
+            style={[styles.iconBtn, { backgroundColor: confirmDelete ? "#FFE8E8" : C.chip }]}
           >
             <Feather name="trash-2" size={20} color={C.destructive} />
           </Pressable>
         </View>
       </View>
+
+      {/* Inline Delete Confirmation */}
+      {confirmDelete && (
+        <View style={[styles.deleteBar, { backgroundColor: "#FFF1F1", borderColor: "#FFD0D0" }]}>
+          <Feather name="alert-triangle" size={16} color={C.destructive} />
+          <Text style={[styles.deleteBarText, { color: C.text }]}>
+            <Text style={{ fontFamily: "Inter_600SemiBold" }}>"{outfit.name}"</Text> silinecek. Geri alınamaz.
+          </Text>
+          <View style={styles.deleteBarActions}>
+            <Pressable onPress={() => setConfirmDelete(false)} style={[styles.deleteBarBtn, { backgroundColor: C.chip }]}>
+              <Text style={[styles.deleteBarBtnText, { color: C.textSecondary }]}>İptal</Text>
+            </Pressable>
+            <Pressable onPress={handleDelete} style={[styles.deleteBarBtn, { backgroundColor: C.destructive }]}>
+              <Text style={[styles.deleteBarBtnText, { color: "#FFF" }]}>
+                {deleting ? "Siliniyor..." : "Sil"}
+              </Text>
+            </Pressable>
+          </View>
+        </View>
+      )}
 
       {/* Pieces */}
       <View style={styles.sectionContainer}>
@@ -139,9 +146,7 @@ export default function OutfitDetailScreen() {
                     {item.name}
                   </Text>
                   {item.brand && (
-                    <Text style={[styles.pieceBrand, { color: textColor, opacity: 0.65 }]}>
-                      {item.brand}
-                    </Text>
+                    <Text style={[styles.pieceBrand, { color: textColor, opacity: 0.65 }]}>{item.brand}</Text>
                   )}
                   <View style={styles.chevronWrap}>
                     <Feather name="chevron-right" size={14} color={textColor} style={{ opacity: 0.6 }} />
@@ -163,7 +168,7 @@ export default function OutfitDetailScreen() {
         </View>
       )}
 
-      {/* Dates */}
+      {/* Date */}
       <View style={[styles.dateCard, { backgroundColor: C.card, borderColor: C.cardBorder, marginHorizontal: 16 }]}>
         <Text style={[styles.dateLabel, { color: C.textSecondary }]}>Oluşturulma</Text>
         <Text style={[styles.dateValue, { color: C.text }]}>{formatDate(outfit.createdAt)}</Text>
@@ -174,128 +179,33 @@ export default function OutfitDetailScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  colorStrip: {
-    height: 14,
-    flexDirection: "row",
-  },
-  colorBar: {
-    flex: 1,
-  },
-  heroSection: {
-    flexDirection: "row",
-    alignItems: "flex-start",
-    justifyContent: "space-between",
-    padding: 20,
-    paddingBottom: 8,
-  },
-  heroText: {
-    flex: 1,
-    gap: 8,
-    marginRight: 12,
-  },
-  heroTitle: {
-    fontSize: 26,
-    fontFamily: "Inter_700Bold",
-    letterSpacing: -0.3,
-  },
-  metaRow: {
-    flexDirection: "row",
-    gap: 8,
-  },
-  badge: {
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 8,
-  },
-  badgeText: {
-    fontSize: 12,
-    fontFamily: "Inter_500Medium",
-    textTransform: "capitalize",
-  },
-  headerActions: {
-    flexDirection: "row",
-    gap: 8,
-  },
-  iconBtn: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  sectionContainer: {
-    paddingHorizontal: 16,
-    marginTop: 16,
-    gap: 12,
-  },
-  sectionLabel: {
-    fontSize: 12,
-    fontFamily: "Inter_600SemiBold",
-    textTransform: "uppercase",
-    letterSpacing: 0.5,
-  },
-  emptyText: {
-    fontSize: 14,
-    fontFamily: "Inter_400Regular",
-    textAlign: "center",
-    paddingVertical: 20,
-  },
-  piecesGrid: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 10,
-  },
-  pieceCard: {
-    width: "47%",
-    borderRadius: 14,
-    padding: 14,
-    gap: 3,
-    minHeight: 90,
-    justifyContent: "center",
-    position: "relative",
-  },
-  pieceCat: {
-    fontSize: 9,
-    fontFamily: "Inter_600SemiBold",
-    letterSpacing: 1,
-  },
-  pieceName: {
-    fontSize: 14,
-    fontFamily: "Inter_600SemiBold",
-  },
-  pieceBrand: {
-    fontSize: 11,
-    fontFamily: "Inter_400Regular",
-  },
-  chevronWrap: {
-    position: "absolute",
-    bottom: 10,
-    right: 10,
-  },
-  notesCard: {
-    padding: 14,
-    borderRadius: 14,
-    borderWidth: 1,
-  },
-  notesText: {
-    fontSize: 14,
-    fontFamily: "Inter_400Regular",
-    lineHeight: 22,
-  },
-  dateCard: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    padding: 14,
-    borderRadius: 14,
-    borderWidth: 1,
-    marginTop: 16,
-  },
-  dateLabel: {
-    fontSize: 13,
-    fontFamily: "Inter_500Medium",
-  },
-  dateValue: {
-    fontSize: 13,
-    fontFamily: "Inter_400Regular",
-  },
+  colorStrip: { height: 14, flexDirection: "row" },
+  colorBar: { flex: 1 },
+  heroSection: { flexDirection: "row", alignItems: "flex-start", justifyContent: "space-between", padding: 20, paddingBottom: 8 },
+  heroText: { flex: 1, gap: 8, marginRight: 12 },
+  heroTitle: { fontSize: 26, fontFamily: "Inter_700Bold", letterSpacing: -0.3 },
+  metaRow: { flexDirection: "row", gap: 8 },
+  badge: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8 },
+  badgeText: { fontSize: 12, fontFamily: "Inter_500Medium", textTransform: "capitalize" },
+  headerActions: { flexDirection: "row", gap: 8 },
+  iconBtn: { width: 40, height: 40, borderRadius: 20, alignItems: "center", justifyContent: "center" },
+  deleteBar: { marginHorizontal: 16, marginBottom: 8, borderRadius: 14, borderWidth: 1, padding: 14, flexDirection: "row", alignItems: "center", gap: 10 },
+  deleteBarText: { flex: 1, fontSize: 13, fontFamily: "Inter_400Regular", lineHeight: 18 },
+  deleteBarActions: { flexDirection: "row", gap: 8 },
+  deleteBarBtn: { paddingHorizontal: 14, paddingVertical: 8, borderRadius: 10 },
+  deleteBarBtnText: { fontSize: 13, fontFamily: "Inter_600SemiBold" },
+  sectionContainer: { paddingHorizontal: 16, marginTop: 16, gap: 12 },
+  sectionLabel: { fontSize: 12, fontFamily: "Inter_600SemiBold", textTransform: "uppercase", letterSpacing: 0.5 },
+  emptyText: { fontSize: 14, fontFamily: "Inter_400Regular", textAlign: "center", paddingVertical: 20 },
+  piecesGrid: { flexDirection: "row", flexWrap: "wrap", gap: 10 },
+  pieceCard: { width: "47%", borderRadius: 14, padding: 14, gap: 3, minHeight: 90, justifyContent: "center", position: "relative" },
+  pieceCat: { fontSize: 9, fontFamily: "Inter_600SemiBold", letterSpacing: 1 },
+  pieceName: { fontSize: 14, fontFamily: "Inter_600SemiBold" },
+  pieceBrand: { fontSize: 11, fontFamily: "Inter_400Regular" },
+  chevronWrap: { position: "absolute", bottom: 10, right: 10 },
+  notesCard: { padding: 14, borderRadius: 14, borderWidth: 1 },
+  notesText: { fontSize: 14, fontFamily: "Inter_400Regular", lineHeight: 22 },
+  dateCard: { flexDirection: "row", justifyContent: "space-between", padding: 14, borderRadius: 14, borderWidth: 1, marginTop: 16 },
+  dateLabel: { fontSize: 13, fontFamily: "Inter_500Medium" },
+  dateValue: { fontSize: 13, fontFamily: "Inter_400Regular" },
 });
