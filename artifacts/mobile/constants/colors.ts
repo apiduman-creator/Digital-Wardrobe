@@ -40,7 +40,14 @@ export const CATEGORIES = [
 ] as const;
 
 export const SEASONS = ["all", "spring", "summer", "fall", "winter"] as const;
-export const OCCASIONS = ["casual", "work", "formal", "sport", "lounge", "special"] as const;
+export const OCCASIONS = [
+  "casual",
+  "work",
+  "formal",
+  "sport",
+  "lounge",
+  "special",
+] as const;
 
 export const COLOR_PALETTE = [
   { name: "Black", hex: "#1A1A1A" },

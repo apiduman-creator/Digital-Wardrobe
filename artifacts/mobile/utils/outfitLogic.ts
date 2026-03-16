@@ -1,4 +1,9 @@
-import { ClosetItem, Season, OutfitSeason, Occasion } from "@/context/ClosetContext";
+import {
+  ClosetItem,
+  Season,
+  OutfitSeason,
+  Occasion,
+} from "@/context/ClosetContext";
 
 export interface GeneratedOutfit {
   top: ClosetItem | null;
@@ -15,15 +20,13 @@ function pickRandom<T>(arr: T[]): T | null {
 export function generateRandomOutfit(
   items: ClosetItem[],
   season?: OutfitSeason,
-  occasion?: Occasion
+  occasion?: Occasion,
 ): GeneratedOutfit {
   const filterItems = (cats: ClosetItem["category"][]) => {
     return items.filter((item) => {
       const catMatch = cats.includes(item.category);
       const seasonMatch =
-        !season ||
-        season === "all" ||
-        item.seasons.includes(season as Season);
+        !season || season === "all" || item.seasons.includes(season as Season);
       const occasionMatch = !occasion || item.occasion === occasion;
       return catMatch && seasonMatch && occasionMatch;
     });
