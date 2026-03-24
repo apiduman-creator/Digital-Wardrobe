@@ -6,9 +6,11 @@ import {
   useFonts,
 } from "@expo-google-fonts/inter";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { Stack } from "expo-router";
+import { Feather } from "@expo/vector-icons";
+import { Stack, useRouter } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import React, { useEffect } from "react";
+import { Pressable } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { KeyboardProvider } from "react-native-keyboard-controller";
 import { SafeAreaProvider } from "react-native-safe-area-context";
@@ -24,6 +26,7 @@ const queryClient = new QueryClient();
 const C = Colors.light;
 
 function RootLayoutNav() {
+  const router = useRouter();
   return (
     <Stack
       screenOptions={{
@@ -46,7 +49,14 @@ function RootLayoutNav() {
       />
       <Stack.Screen
         name="item/[id]"
-        options={{ title: "Ürün Detayı" }}
+        options={{
+          title: "Ürün Detayı",
+          headerLeft: () => (
+            <Pressable onPress={() => router.back()} style={{ marginLeft: 12, padding: 6 }}>
+              <Feather name="chevron-left" size={22} color={C.tint} />
+            </Pressable>
+          ),
+        }}
       />
       <Stack.Screen
         name="add-outfit"
@@ -58,7 +68,14 @@ function RootLayoutNav() {
       />
       <Stack.Screen
         name="outfit/[id]"
-        options={{ title: "Kombin Detayı" }}
+        options={{
+          title: "Kombin Detayı",
+          headerLeft: () => (
+            <Pressable onPress={() => router.back()} style={{ marginLeft: 12, padding: 6 }}>
+              <Feather name="chevron-left" size={22} color={C.tint} />
+            </Pressable>
+          ),
+        }}
       />
       <Stack.Screen
         name="create-outfit-manual"

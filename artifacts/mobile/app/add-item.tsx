@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useMemo, useState, useCallback } from "react";
 import {
   View,
   Text,
@@ -8,6 +8,7 @@ import {
   ScrollView,
   Platform,
   Alert,
+  Modal,
 } from "react-native";
 import { Feather } from "@expo/vector-icons";
 import { router } from "expo-router";
@@ -15,8 +16,29 @@ import * as Haptics from "expo-haptics";
 import Colors, { CATEGORIES, OCCASIONS, COLOR_PALETTE } from "@/constants/colors";
 import { useCloset, Category, Season, Occasion } from "@/context/ClosetContext";
 import { SEASON_LABELS } from "@/utils/outfitLogic";
+import { LinearGradient } from "expo-linear-gradient";
+import WheelColorPicker from "react-native-wheel-color-picker";
 
 const ITEM_SEASONS: Season[] = ["spring", "summer", "fall", "winter"];
+
+type ColorOption = { id: string; name: string; hex: string };
+
+const BASE_COLORS: ColorOption[] = COLOR_PALETTE.map((c) => ({
+  id: c.name,
+  name: c.name,
+  hex: c.hex,
+}));
+
+const RAINBOW_GRADIENT = [
+  "#FF3B30", // red
+  "#FF9500", // orange
+  "#FFCC00", // yellow
+  "#34C759", // green
+  "#0A84FF", // blue
+  "#5E5CE6", // indigo
+  "#BF5AF2", // violet
+  "#FF3B30",
+] as const;
 
 // ─── Single-select chip row ───────────────────────────────────────────────────
 function ChipSelector({
@@ -131,8 +153,11 @@ export default function AddItemScreen() {
 
   const [name, setName] = useState("");
   const [category, setCategory] = useState<Category>("tops");
-  const [colorName, setColorName] = useState("Black");
-  const [colorHex, setColorHex] = useState("#1A1A1A");
+  // Color selection uses color IDs (base palette: `Black`, custom palette: `custom:#RRGGBB`)
+  const [selectedColorIds, setSelectedColorIds] = useState<string[]>(["Black"]);
+  const [customColors, setCustomColors] = useState<ColorOption[]>([]);
+  const [wheelVisible, setWheelVisible] = useState(false);
+  const [wheelHex, setWheelHex] = useState("#1A1A1A");
   const [seasons, setSeasons] = useState<Season[]>(["spring", "summer", "fall", "winter"]);
   const [occasion, setOccasion] = useState<Occasion>("casual");
   const [brand, setBrand] = useState("");
@@ -157,6 +182,37 @@ export default function AddItemScreen() {
 
   const canSave = name.trim().length > 0 && seasons.length > 0;
 
+  const availableColors = useMemo(() => [...BASE_COLORS, ...customColors], [customColors]);
+
+  const selectedColors = useMemo(
+    () => availableColors.filter((c) => selectedColorIds.includes(c.id)),
+    [availableColors, selectedColorIds]
+  );
+
+  const primaryColor = selectedColors[0] ?? BASE_COLORS[0];
+  const secondaryColor = selectedColors[1];
+
+  const isRainbow = selectedColors.length >= 3;
+
+  const handleCustomColorSelected = useCallback((hex: string) => {
+    const normalized = hex.toUpperCase();
+    const customId = `custom:${normalized}`;
+    const customName = `Özel ${normalized}`;
+
+    setCustomColors((prev) => {
+      if (prev.some((c) => c.id === customId)) return prev;
+      return [...prev, { id: customId, name: customName, hex: normalized }];
+    });
+    setSelectedColorIds((prev) => (prev.includes(customId) ? prev : [...prev, customId]));
+    setWheelVisible(false);
+  }, []);
+
+  const colorLabel = useMemo(() => {
+    if (selectedColors.length <= 1) return primaryColor.name;
+    if (selectedColors.length === 2) return `${primaryColor.name} + ${secondaryColor?.name}`;
+    return "Çok Renkli";
+  }, [primaryColor.name, secondaryColor?.name, selectedColors.length]);
+
   const handleSave = async () => {
     if (!name.trim()) {
       Alert.alert("Hata", "Ürün adı zorunludur.");
@@ -171,8 +227,8 @@ export default function AddItemScreen() {
     await addItem({
       name: name.trim(),
       category,
-      color: colorName,
-      colorHex,
+      color: colorLabel,
+      colorHex: primaryColor.hex,
       brand: brand.trim() || undefined,
       seasons,
       occasion,
@@ -224,13 +280,46 @@ export default function AddItemScreen() {
         {/* Color */}
         <View style={styles.fieldGroup}>
           <Text style={[styles.label, { color: C.textSecondary }]}>Renk *</Text>
+          <View style={styles.selectedColorPreviewRow}>
+            {isRainbow ? (
+              <LinearGradient
+                colors={RAINBOW_GRADIENT}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={styles.selectedColorDotRainbow}
+              />
+            ) : (
+              <View
+                style={[
+                  styles.selectedColorDot,
+                  {
+                    backgroundColor: selectedColors.length === 0 ? "#E0E0E0" : primaryColor.hex,
+                    borderColor:
+                      selectedColors.length === 2 && secondaryColor
+                        ? secondaryColor.hex
+                        : "transparent",
+                    borderWidth: selectedColors.length === 2 ? 3 : 0,
+                  },
+                ]}
+              />
+            )}
+            <Text style={[styles.selectedColorLabel, { color: C.textSecondary }]}>
+              {colorLabel}
+            </Text>
+          </View>
           <View style={styles.colorGrid}>
-            {COLOR_PALETTE.map((color) => {
-              const isSelected = colorName === color.name;
+            {availableColors.map((color) => {
+              const isSelected = selectedColorIds.includes(color.id);
               return (
                 <Pressable
-                  key={color.name}
-                  onPress={() => { setColorName(color.name); setColorHex(color.hex); }}
+                  key={color.id}
+                  onPress={() => {
+                    setSelectedColorIds((prev) =>
+                      prev.includes(color.id)
+                        ? prev.filter((n) => n !== color.id)
+                        : [...prev, color.id]
+                    );
+                  }}
                   style={styles.colorItem}
                 >
                   <View
@@ -238,7 +327,8 @@ export default function AddItemScreen() {
                       styles.colorDot,
                       { backgroundColor: color.hex },
                       (color.name === "White" || color.name === "Cream")
-                        ? { borderWidth: 1, borderColor: "#E0DAD2" } : {},
+                        ? { borderWidth: 1, borderColor: "#E0DAD2" }
+                        : {},
                       isSelected ? { borderWidth: 3, borderColor: C.tint } : {},
                     ]}
                   >
@@ -256,8 +346,50 @@ export default function AddItemScreen() {
                 </Pressable>
               );
             })}
+
+            {/* Premium: custom color */}
+            <Pressable
+              onPress={() => {
+                setWheelHex(primaryColor.hex);
+                setWheelVisible(true);
+              }}
+              style={[styles.colorItem, styles.plusColorItem]}
+            >
+              <View style={[styles.colorDot, styles.plusColorDot, { borderColor: C.tint }]}>
+                <Feather name="plus" size={18} color={C.tint} />
+              </View>
+              <Text style={[styles.colorLabel, { color: C.tint }]}>+</Text>
+            </Pressable>
           </View>
         </View>
+
+        {/* Advanced: color wheel */}
+        {wheelVisible && (
+          <Modal transparent animationType="slide" visible onRequestClose={() => setWheelVisible(false)}>
+            <View style={styles.wheelModalOverlay}>
+              <View style={[styles.wheelModal, { backgroundColor: C.backgroundSecondary }]}>
+                <View style={styles.wheelHeader}>
+                  <Text style={[styles.wheelTitle, { color: C.text }]}>Özel Renk</Text>
+                  <Pressable
+                    onPress={() => setWheelVisible(false)}
+                    style={[styles.wheelCloseBtn, { backgroundColor: C.chip }]}
+                    hitSlop={10}
+                  >
+                    <Feather name="x" size={18} color={C.textSecondary} />
+                  </Pressable>
+                </View>
+                <View style={styles.wheelBody}>
+                  <WheelColorPicker
+                    color={wheelHex}
+                    onColorChangeComplete={(hex) => handleCustomColorSelected(hex)}
+                    thumbSize={38}
+                    sliderSize={20}
+                  />
+                </View>
+              </View>
+            </View>
+          </Modal>
+        )}
 
         {/* Season — multi-select */}
         <SeasonMultiSelect selected={seasons} onToggle={toggleSeason} />
@@ -328,6 +460,74 @@ const styles = StyleSheet.create({
   colorItem: { alignItems: "center", gap: 5, width: 48 },
   colorDot: { width: 40, height: 40, borderRadius: 20, alignItems: "center", justifyContent: "center" },
   colorLabel: { fontSize: 9, fontFamily: "Inter_400Regular", textAlign: "center" },
+  selectedColorPreviewRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    marginBottom: 12,
+  },
+  selectedColorDot: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+  },
+  selectedColorDotRainbow: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+  },
+  selectedColorLabel: {
+    fontSize: 13,
+    fontFamily: "Inter_500Medium",
+  },
+  plusColorItem: {
+    marginLeft: 2,
+  },
+  plusColorDot: {
+    borderWidth: 2,
+    borderRadius: 20,
+    width: 40,
+    height: 40,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "transparent",
+  },
+
+  // Color wheel modal
+  wheelModalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.35)",
+    justifyContent: "flex-end",
+  },
+  wheelModal: {
+    padding: 16,
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    minHeight: 360,
+    gap: 12,
+  },
+  wheelHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingVertical: 4,
+  },
+  wheelTitle: {
+    fontSize: 14,
+    fontFamily: "Inter_600SemiBold",
+  },
+  wheelCloseBtn: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  wheelBody: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+  },
   footer: { position: "absolute", bottom: 0, left: 0, right: 0, padding: 20, paddingBottom: Platform.OS === "ios" ? 36 : 20, borderTopWidth: 1 },
   saveBtn: { flexDirection: "row", alignItems: "center", justifyContent: "center", paddingVertical: 16, borderRadius: 14, gap: 8 },
   saveBtnText: { fontSize: 16, fontFamily: "Inter_600SemiBold" },

@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useCallback } from "react";
 import {
   View,
   Text,
@@ -114,11 +114,16 @@ export default function CreateOutfitManualScreen() {
   }
 
   const [selectedByCategory, setSelectedByCategory] = useState<Record<string, ClosetItem>>(initialSelected);
+  const [selectedAccessoryIds, setSelectedAccessoryIds] = useState<Set<string>>(new Set());
   const [name, setName] = useState("");
   const [occasion, setOccasion] = useState<Occasion>("casual");
   const [saving, setSaving] = useState(false);
 
-  const selectedItems = Object.values(selectedByCategory);
+  const selectedItems = useMemo(() => {
+    const accessories =
+      items.filter((i) => i.category === "accessories" && selectedAccessoryIds.has(i.id));
+    return [...Object.values(selectedByCategory), ...accessories];
+  }, [items, selectedByCategory, selectedAccessoryIds]);
 
   // Group items by category for SectionList
   const sections = useMemo(() => {
@@ -135,24 +140,43 @@ export default function CreateOutfitManualScreen() {
       });
   }, [items]);
 
-  const handleToggle = (item: ClosetItem) => {
+  const handleToggle = useCallback((item: ClosetItem) => {
     if (Platform.OS !== "web") Haptics.selectionAsync();
+
+    if (item.category === "accessories") {
+      setSelectedAccessoryIds((prev) => {
+        const next = new Set(prev);
+        if (next.has(item.id)) {
+          next.delete(item.id);
+        } else {
+          next.add(item.id);
+        }
+        return next;
+      });
+      return;
+    }
+
     setSelectedByCategory((prev) => {
       const cat = item.category;
       const current = prev[cat];
       if (current?.id === item.id) {
-        // Deselect
         const next = { ...prev };
         delete next[cat];
         return next;
       }
-      // Select (replaces existing in same category)
+      if (cat === "dresses") {
+        const next = { ...prev };
+        delete next.tops;
+        delete next.bottoms;
+        next[cat] = item;
+        return next;
+      }
       return { ...prev, [cat]: item };
     });
-  };
+  }, [setSelectedByCategory, setSelectedAccessoryIds]);
 
   const handleSave = async () => {
-    if (!name.trim() || selectedItems.length === 0) return;
+    if (selectedItems.length === 0) return;
     setSaving(true);
     if (Platform.OS !== "web") Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
 
@@ -162,8 +186,13 @@ export default function CreateOutfitManualScreen() {
     for (const s of allSeasons) seasonCounts[s] = (seasonCounts[s] ?? 0) + 1;
     const topSeason = (Object.entries(seasonCounts).sort((a, b) => b[1] - a[1])[0]?.[0] ?? "all") as any;
 
+    const resolvedName =
+      name.trim().length > 0
+        ? name.trim()
+        : `Kombin #${new Date().toLocaleDateString("tr-TR")}`;
+
     await addOutfit({
-      name: name.trim(),
+      name: resolvedName,
       itemIds: selectedItems.map((i) => i.id),
       occasion,
       season: topSeason,
@@ -172,9 +201,9 @@ export default function CreateOutfitManualScreen() {
     router.replace("/(tabs)/outfits");
   };
 
-  const canSave = name.trim().length > 0 && selectedItems.length >= 2;
+  const canSave = selectedItems.length >= 2;
 
-  const ListHeader = (
+  const ListHeader = useMemo(() => (
     <View style={styles.listHeader}>
       {/* Selected preview */}
       {selectedItems.length > 0 ? (
@@ -232,14 +261,14 @@ export default function CreateOutfitManualScreen() {
 
       <Text style={[styles.pickerTitle, { color: C.textSecondary }]}>Gardıroptaki Parçalar</Text>
     </View>
-  );
+  ), [C, selectedItems, name, occasion]);
 
   return (
     <View style={[styles.container, { backgroundColor: C.backgroundSecondary }]}>
       <SectionList
         sections={sections}
         keyExtractor={(item) => item.id}
-        ListHeaderComponent={() => ListHeader}
+        ListHeaderComponent={ListHeader}
         contentContainerStyle={[styles.scroll, { paddingBottom: 120 }]}
         showsVerticalScrollIndicator={false}
         stickySectionHeadersEnabled={false}
@@ -258,10 +287,16 @@ export default function CreateOutfitManualScreen() {
         )}
         renderItem={({ item }) => {
           const cat = item.category as Category;
-          const isSelected = selectedByCategory[cat]?.id === item.id;
+          const isSelected =
+            cat === "accessories"
+              ? selectedAccessoryIds.has(item.id)
+              : selectedByCategory[cat]?.id === item.id;
           const isExclusive = EXCLUSIVE_CATEGORIES.includes(cat);
           const categoryTaken = !!selectedByCategory[cat] && !isSelected;
-          const isDisabled = isExclusive && categoryTaken;
+          const hasDressSelected = !!selectedByCategory["dresses"];
+          const isTopOrBottom = cat === "tops" || cat === "bottoms";
+          const isDisabledByDressRule = hasDressSelected && isTopOrBottom;
+          const isDisabled = (isExclusive && categoryTaken) || isDisabledByDressRule;
 
           return (
             <ItemRow

@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode } from "react";
+import { createOutfit as apiCreateOutfit } from "@workspace/api-client-react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
 // ─── Domain Types ────────────────────────────────────────────────────────────
@@ -173,9 +174,36 @@ export function ClosetProvider({ children }: { children: ReactNode }) {
 
   // ─── Outfit Operations ──────────────────────────────────────────────────────
   const addOutfit = useCallback(async (outfit: Omit<Outfit, "id" | "createdAt" | "updatedAt">) => {
-    const now = new Date().toISOString();
-    const newOutfit: Outfit = { ...outfit, id: generateId(), createdAt: now, updatedAt: now };
-    await persistOutfits([newOutfit, ...outfits]);
+    try {
+      const created = await apiCreateOutfit({
+        name: outfit.name,
+        itemIds: outfit.itemIds,
+        occasion: outfit.occasion,
+        season: outfit.season,
+        notes: outfit.notes,
+        favorite: outfit.favorite,
+      });
+      if (!created || !created.id) {
+        throw new Error("API returned empty outfit response");
+      }
+      const normalized: Outfit = {
+        id: created.id,
+        name: created.name,
+        itemIds: created.itemIds,
+        occasion: created.occasion as Occasion,
+        season: created.season as OutfitSeason,
+        notes: created.notes,
+        favorite: created.favorite,
+        createdAt: created.createdAt,
+        updatedAt: created.updatedAt,
+      };
+      await persistOutfits([normalized, ...outfits]);
+    } catch (e) {
+      console.error("Failed to create outfit via API, falling back to local:", e);
+      const now = new Date().toISOString();
+      const fallback: Outfit = { ...outfit, id: generateId(), createdAt: now, updatedAt: now };
+      await persistOutfits([fallback, ...outfits]);
+    }
   }, [outfits]);
 
   const updateOutfit = useCallback(async (id: string, updates: Partial<Outfit>) => {

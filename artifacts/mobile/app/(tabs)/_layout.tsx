@@ -22,7 +22,7 @@ function NativeTabLayout() {
         <Label>Kombins</Label>
       </NativeTabs.Trigger>
       <NativeTabs.Trigger name="calendar">
-        <Icon sf={{ default: "calendar", selected: "calendar.fill" }} />
+        <Icon sf={{ default: "calendar", selected: "calendar" }} />
         <Label>Takvim</Label>
       </NativeTabs.Trigger>
     </NativeTabs>
