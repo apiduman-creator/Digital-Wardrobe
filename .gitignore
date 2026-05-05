@@ -6,3 +6,5 @@ local.db-journal
 .expo/
 dist/
 *.log
+artifacts/api-server/.env
+artifacts/mobile/.env
