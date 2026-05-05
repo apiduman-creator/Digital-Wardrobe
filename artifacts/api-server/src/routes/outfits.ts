@@ -14,11 +14,11 @@ const seasonEnum = ["spring", "summer", "fall", "winter", "all"] as const;
 const occasionEnum = ["casual", "work", "formal", "sport", "lounge", "special"] as const;
 
 const createOutfitSchema = z.object({
-  name: z.string().min(1),
+  name: z.string().min(1).max(100),
   itemIds: z.array(z.string()),
   occasion: z.enum(occasionEnum),
   season: z.enum(seasonEnum),
-  notes: z.string().optional(),
+  notes: z.string().max(500).optional(),
   favorite: z.boolean().optional().default(false),
 });
 
@@ -37,8 +37,8 @@ function mapOutfit(outfit: typeof outfitsTable.$inferSelect) {
     season: outfit.season,
     notes: outfit.notes ?? undefined,
     favorite: outfit.favorite,
-    createdAt: outfit.createdAt.toISOString(),
-    updatedAt: outfit.updatedAt.toISOString(),
+    createdAt: outfit.createdAt,
+    updatedAt: outfit.updatedAt,
   };
 }
 
@@ -55,7 +55,7 @@ router.post("/", async (req, res) => {
   }
   const data = parsed.data;
   const id = generateId();
-  const now = new Date();
+  const now = new Date().toISOString();
   const [created] = await db.insert(outfitsTable).values({
     id,
     name: data.name,
@@ -94,7 +94,7 @@ router.put("/:id", async (req, res) => {
       season: data.season,
       notes: data.notes ?? null,
       favorite: data.favorite ?? false,
-      updatedAt: new Date(),
+      updatedAt: new Date().toISOString(),
     })
     .where(eq(outfitsTable.id, req.params.id))
     .returning();

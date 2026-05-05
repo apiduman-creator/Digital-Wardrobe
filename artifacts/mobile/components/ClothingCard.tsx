@@ -1,5 +1,5 @@
 import React from "react";
-import { View, Text, StyleSheet, Pressable, Platform } from "react-native";
+import { View, Text, StyleSheet, Pressable, Platform, Image } from "react-native";
 import { Feather } from "@expo/vector-icons";
 import Animated, { useSharedValue, useAnimatedStyle, withSpring } from "react-native-reanimated";
 import * as Haptics from "expo-haptics";
@@ -42,9 +42,16 @@ export function ClothingCard({ item, onPress, onFavoriteToggle, size = "large" }
         onPressOut={handlePressOut}
         style={[styles.card, { borderColor: C.cardBorder }]}
       >
-        {/* Color block */}
+        {/* Color block / Photo */}
         <View style={[styles.colorBlock, { backgroundColor: item.colorHex || "#CCC", height: blockHeight }]}>
-          <Text style={[styles.categoryLabel, { color: textOnColor, opacity: 0.75 }]}>
+          {item.imageUri ? (
+            <Image
+              source={{ uri: item.imageUri }}
+              style={StyleSheet.absoluteFill}
+              resizeMode="cover"
+            />
+          ) : null}
+          <Text style={[styles.categoryLabel, { color: item.imageUri ? "#FFF" : textOnColor, opacity: 0.85, zIndex: 1 }]}>
             {item.category}
           </Text>
           <Pressable onPress={handleFavorite} style={styles.favoriteBtn} hitSlop={8}>
@@ -93,6 +100,7 @@ const styles = StyleSheet.create({
     position: "relative",
     alignItems: "center",
     justifyContent: "center",
+    overflow: "hidden",
   },
   categoryLabel: {
     fontSize: 12,
@@ -110,6 +118,7 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(0,0,0,0.2)",
     alignItems: "center",
     justifyContent: "center",
+    zIndex: 1,
   },
   info: {
     padding: 10,

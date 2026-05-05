@@ -1,12 +1,11 @@
-import { drizzle } from 'drizzle-orm/better-sqlite3';
-import Database from 'better-sqlite3';
-import * as schema from './schema/index'; // Şema dosyanın adından emin ol
+import { drizzle } from 'drizzle-orm/libsql';
+import { createClient } from '@libsql/client';
+import * as schema from './schema/index';
 import path from 'path';
 
-// Sürecin çalıştığı klasörü baz alarak yolu oluşturur
 const dbPath = path.resolve(process.cwd(), '../../local.db');
 
-console.log(`Checking Database at: ${dbPath}`); // Terminalde yolu görelim
+console.log(`Checking Database at: ${dbPath}`);
 
-const sqlite = new Database(dbPath);
-export const db = drizzle(sqlite, { schema });
+const client = createClient({ url: `file:${dbPath}` });
+export const db = drizzle(client, { schema });

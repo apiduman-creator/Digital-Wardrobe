@@ -1,7 +1,7 @@
+import "dotenv/config";
 import app from "./app";
-import { migrate } from 'drizzle-orm/node-postgres/migrator';
-import { db } from "@workspace/db"; // Veritabanı bağlantısını workspace paketi üzerinden import et
-import path from 'path';
+import { db } from "@workspace/db";
+import { sql } from "drizzle-orm";
 
 const rawPort = process.env["PORT"];
 
@@ -15,17 +15,59 @@ const port = Number(rawPort);
 const setupDatabase = async () => {
   try {
     console.log("Database tabloları kontrol ediliyor...");
-    // migrationsFolder yolu: lib/db/drizzle klasörünü işaret etmeli
-    await migrate(db, { 
-      migrationsFolder: path.resolve(process.cwd(), "../../lib/db/drizzle") 
-    });
+    await db.run(sql`
+      CREATE TABLE IF NOT EXISTS closet_items (
+        id TEXT PRIMARY KEY,
+        name TEXT NOT NULL,
+        category TEXT NOT NULL,
+        color TEXT NOT NULL,
+        brand TEXT,
+        season TEXT NOT NULL DEFAULT 'all',
+        occasion TEXT NOT NULL DEFAULT 'casual',
+        image_uri TEXT,
+        notes TEXT,
+        favorite INTEGER NOT NULL DEFAULT 0,
+        wear_count INTEGER NOT NULL DEFAULT 0,
+        last_worn TEXT,
+        created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+    await db.run(sql`
+      CREATE TABLE IF NOT EXISTS outfits (
+        id TEXT PRIMARY KEY,
+        name TEXT NOT NULL,
+        item_ids TEXT NOT NULL,
+        occasion TEXT NOT NULL,
+        season TEXT NOT NULL,
+        notes TEXT,
+        favorite INTEGER NOT NULL DEFAULT 0,
+        created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+    await db.run(sql`
+      CREATE TABLE IF NOT EXISTS analyze_strikes (
+        ip TEXT PRIMARY KEY,
+        strikes INTEGER NOT NULL DEFAULT 0,
+        blocked_until TEXT,
+        updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+    await db.run(sql`
+      CREATE TABLE IF NOT EXISTS users (
+        id TEXT PRIMARY KEY,
+        email TEXT NOT NULL UNIQUE,
+        password_hash TEXT NOT NULL,
+        created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
     console.log("✅ Veritabanı tabloları hazır!");
   } catch (error) {
     console.error("❌ Veritabanı kurulum hatası:", error);
   }
 };
 
-// Sunucuyu başlatmadan önce tabloları kur
 setupDatabase().then(() => {
   app.listen(port, () => {
     console.log(`🚀 Server listening on port ${port}`);

@@ -26,17 +26,17 @@ export default {
 };
 
 export const CATEGORIES = [
-  { id: "all", label: "All", icon: "grid" as const },
-  { id: "tops", label: "Tops", icon: "layers" as const },
-  { id: "bottoms", label: "Bottoms", icon: "minus" as const },
-  { id: "dresses", label: "Dresses", icon: "star" as const },
-  { id: "outerwear", label: "Outerwear", icon: "wind" as const },
-  { id: "shoes", label: "Shoes", icon: "arrow-up" as const },
-  { id: "accessories", label: "Accessories", icon: "watch" as const },
-  { id: "bags", label: "Bags", icon: "shopping-bag" as const },
-  { id: "activewear", label: "Activewear", icon: "activity" as const },
-  { id: "sleepwear", label: "Sleepwear", icon: "moon" as const },
-  { id: "other", label: "Other", icon: "more-horizontal" as const },
+  { id: "all", label: "Tümü", icon: "grid" as const },
+  { id: "tops", label: "Üstler", icon: "layers" as const },
+  { id: "bottoms", label: "Altlar", icon: "minus" as const },
+  { id: "dresses", label: "Elbiseler", icon: "star" as const },
+  { id: "outerwear", label: "Dış Giyim", icon: "wind" as const },
+  { id: "shoes", label: "Ayakkabılar", icon: "arrow-up" as const },
+  { id: "accessories", label: "Aksesuarlar", icon: "watch" as const },
+  { id: "bags", label: "Çantalar", icon: "shopping-bag" as const },
+  { id: "activewear", label: "Spor Giyim", icon: "activity" as const },
+  { id: "sleepwear", label: "Pijamalar", icon: "moon" as const },
+  { id: "other", label: "Diğer", icon: "more-horizontal" as const },
 ] as const;
 
 export const SEASONS = ["all", "spring", "summer", "fall", "winter"] as const;

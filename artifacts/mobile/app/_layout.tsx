@@ -5,11 +5,16 @@ import {
   Inter_700Bold,
   useFonts,
 } from "@expo-google-fonts/inter";
+import {
+  PlayfairDisplay_400Regular,
+  PlayfairDisplay_700Bold,
+} from "@expo-google-fonts/playfair-display";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Feather } from "@expo/vector-icons";
 import { Stack, useRouter } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { Pressable } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { KeyboardProvider } from "react-native-keyboard-controller";
@@ -25,8 +30,15 @@ SplashScreen.preventAutoHideAsync();
 const queryClient = new QueryClient();
 const C = Colors.light;
 
-function RootLayoutNav() {
+function RootLayoutNav({ initialRoute }: { initialRoute: "onboarding" | "(tabs)" }) {
   const router = useRouter();
+
+  useEffect(() => {
+    if (initialRoute === "onboarding") {
+      router.replace("/onboarding");
+    }
+  }, []);
+
   return (
     <Stack
       screenOptions={{
@@ -38,6 +50,7 @@ function RootLayoutNav() {
         contentStyle: { backgroundColor: C.background },
       }}
     >
+      <Stack.Screen name="onboarding" options={{ headerShown: false, gestureEnabled: false }} />
       <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
       <Stack.Screen
         name="add-item"
@@ -94,15 +107,29 @@ export default function RootLayout() {
     Inter_500Medium,
     Inter_600SemiBold,
     Inter_700Bold,
+    PlayfairDisplay_400Regular,
+    PlayfairDisplay_700Bold,
   });
+  const [onboardingChecked, setOnboardingChecked] = useState(false);
+  const [onboardingDone, setOnboardingDone] = useState(false);
 
   useEffect(() => {
-    if (fontsLoaded || fontError) {
+    AsyncStorage.getItem("onboarding_completed").then((val) => {
+      console.log("[RootLayout] onboarding_completed raw value:", val);
+      const done = !!val;
+      setOnboardingDone(done);
+      setOnboardingChecked(true);
+      console.log("[RootLayout] initialRoute →", done ? "(tabs)" : "onboarding");
+    });
+  }, []);
+
+  useEffect(() => {
+    if ((fontsLoaded || fontError) && onboardingChecked) {
       SplashScreen.hideAsync();
     }
-  }, [fontsLoaded, fontError]);
+  }, [fontsLoaded, fontError, onboardingChecked]);
 
-  if (!fontsLoaded && !fontError) return null;
+  if ((!fontsLoaded && !fontError) || !onboardingChecked) return null;
 
   return (
     <SafeAreaProvider>
@@ -112,7 +139,7 @@ export default function RootLayout() {
             <KeyboardProvider>
               <ClosetProvider>
                 <CalendarProvider>
-                  <RootLayoutNav />
+                  <RootLayoutNav initialRoute={onboardingDone ? "(tabs)" : "onboarding"} />
                 </CalendarProvider>
               </ClosetProvider>
             </KeyboardProvider>

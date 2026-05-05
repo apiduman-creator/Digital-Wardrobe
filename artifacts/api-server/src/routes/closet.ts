@@ -1,37 +1,3 @@
-// artifacts/api-server/src/routes/closet.ts
-
-// Mevcut db importunun altına şu satırları ekle:
-import { sql } from "drizzle-orm";
-
-const initializeTable = async () => {
-  try {
-    console.log("Tablo kontrol ediliyor...");
-    await db.execute(sql`
-      CREATE TABLE IF NOT EXISTS closet_items (
-        id TEXT PRIMARY KEY,
-        name TEXT NOT NULL,
-        category TEXT NOT NULL,
-        color TEXT NOT NULL,
-        brand TEXT,
-        season TEXT,
-        occasion TEXT,
-        image_uri TEXT,
-        notes TEXT,
-        favorite INTEGER DEFAULT 0,
-        wear_count INTEGER DEFAULT 0,
-        last_worn TEXT,
-        created_at TEXT NOT NULL,
-        updated_at TEXT NOT NULL
-      );
-    `);
-    console.log("✅ closet_items tablosu hazır!");
-  } catch (e) {
-    console.error("Tablo oluşturma hatası:", e);
-  }
-};
-
-// Bu fonksiyonu dosya içinde bir kez çağır
-initializeTable();
 import { Router, type IRouter } from "express";
 import { db } from "@workspace/db";
 import { closetItemsTable } from "@workspace/db/schema";
@@ -49,14 +15,14 @@ const seasonEnum = ["spring", "summer", "fall", "winter", "all"] as const;
 const occasionEnum = ["casual", "work", "formal", "sport", "lounge", "special"] as const;
 
 const createItemSchema = z.object({
-  name: z.string().min(1),
+  name: z.string().min(1).max(100),
   category: z.enum(categoryEnum),
   color: z.string().min(1),
-  brand: z.string().optional(),
+  brand: z.string().max(50).optional(),
   season: z.enum(seasonEnum),
   occasion: z.enum(occasionEnum),
   imageUri: z.string().optional(),
-  notes: z.string().optional(),
+  notes: z.string().max(500).optional(),
   favorite: z.boolean().optional().default(false),
 });
 
@@ -74,8 +40,8 @@ function mapItem(item: typeof closetItemsTable.$inferSelect) {
     favorite: item.favorite,
     wearCount: item.wearCount,
     lastWorn: item.lastWorn ?? null,
-    createdAt: item.createdAt.toISOString(),
-    updatedAt: item.updatedAt.toISOString(),
+    createdAt: item.createdAt,
+    updatedAt: item.updatedAt,
   };
 }
 
@@ -102,7 +68,7 @@ router.post("/items", async (req, res) => {
   }
   const data = parsed.data;
   const id = generateId();
-  const now = new Date();
+  const now = new Date().toISOString();
   const [created] = await db.insert(closetItemsTable).values({
     id,
     name: data.name,
@@ -149,7 +115,7 @@ router.put("/items/:id", async (req, res) => {
       imageUri: data.imageUri ?? null,
       notes: data.notes ?? null,
       favorite: data.favorite ?? false,
-      updatedAt: new Date(),
+      updatedAt: new Date().toISOString(),
     })
     .where(eq(closetItemsTable.id, req.params.id))
     .returning();

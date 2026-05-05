@@ -1,17 +1,18 @@
-import { pgTable, text, boolean, timestamp } from "drizzle-orm/pg-core";
+import { sqliteTable, text, integer } from "drizzle-orm/sqlite-core";
+import { sql } from "drizzle-orm";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
 
-export const outfitsTable = pgTable("outfits", {
+export const outfitsTable = sqliteTable("outfits", {
   id: text("id").primaryKey(),
   name: text("name").notNull(),
   itemIds: text("item_ids").notNull(),
   occasion: text("occasion").notNull(),
   season: text("season").notNull(),
   notes: text("notes"),
-  favorite: boolean("favorite").notNull().default(false),
-  createdAt: timestamp("created_at").notNull().defaultNow(),
-  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+  favorite: integer("favorite", { mode: "boolean" }).notNull().default(false),
+  createdAt: text("created_at").notNull().default(sql`CURRENT_TIMESTAMP`),
+  updatedAt: text("updated_at").notNull().default(sql`CURRENT_TIMESTAMP`),
 });
 
 export const insertOutfitSchema = createInsertSchema(outfitsTable).omit({

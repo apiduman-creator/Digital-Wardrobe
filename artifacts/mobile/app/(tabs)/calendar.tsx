@@ -1,4 +1,5 @@
 import React, { useState, useMemo, useCallback } from "react";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import {
   View,
   Text,
@@ -14,6 +15,17 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import * as Haptics from "expo-haptics";
 import Colors from "@/constants/colors";
 import { useCalendar, CalendarEntry } from "@/context/CalendarContext";
+
+const P = {
+  bg:         "#F9F3EA",
+  ink:        "#2C1A0E",
+  inkLight:   "#A88B75",
+  accent:     "#C84B4B",
+  accentGold: "#C9A96E",
+  border:     "#DDD0BC",
+  tagBg:      "#F5EBD8",
+  white:      "#FFFFFF",
+};
 import { useCloset } from "@/context/ClosetContext";
 
 const DAYS_SHORT = ["Pt", "Sa", "Ça", "Pe", "Cu", "Ct", "Pz"];
@@ -275,19 +287,28 @@ export default function CalendarScreen() {
   }, [entries, year, month]);
 
   return (
-    <View style={[styles.container, { backgroundColor: C.background }]}>
+    <View style={[styles.container, { backgroundColor: P.bg }]}>
+      {/* Header */}
+      <View
+        style={[
+          styles.header,
+          {
+            paddingTop: topPad + 2,
+            backgroundColor: P.bg,
+            zIndex: 2,
+            borderBottomWidth: 1,
+            borderBottomColor: P.border,
+          },
+        ]}
+      >
+        <Text style={styles.subtitle}>Giyim</Text>
+        <Text style={styles.title}>Takvimi</Text>
+      </View>
+
       <ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{ paddingBottom: Platform.OS === "web" ? 34 + 84 : insets.bottom + 100 }}
       >
-        {/* Header */}
-        <View style={[styles.header, { paddingTop: topPad + 12 }]}>
-          <View>
-            <Text style={[styles.subtitle, { color: C.textSecondary }]}>Giyim</Text>
-            <Text style={[styles.title, { color: C.text }]}>Takvimi</Text>
-          </View>
-        </View>
-
         {/* Month Navigator */}
         <View style={[styles.monthNav, { backgroundColor: C.card, borderColor: C.cardBorder }]}>
           <Pressable onPress={prevMonth} style={styles.navBtn} hitSlop={8}>
@@ -390,6 +411,17 @@ export default function CalendarScreen() {
             </Text>
           </View>
         )}
+
+        {/* ── DEV: Onboarding reset ── */}
+        <Pressable
+          onPress={async () => {
+            await AsyncStorage.removeItem("onboarding_completed");
+            alert("Onboarding sıfırlandı. Uygulamayı yeniden başlat.");
+          }}
+          style={styles.devBtn}
+        >
+          <Text style={styles.devBtnText}>🛠 Onboarding'i Sıfırla</Text>
+        </Pressable>
       </ScrollView>
 
       {selectedDate && (
@@ -407,9 +439,9 @@ const CELL_SIZE = 44;
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  header: { paddingHorizontal: 20, paddingBottom: 12 },
-  subtitle: { fontSize: 14, fontFamily: "Inter_400Regular" },
-  title: { fontSize: 32, fontFamily: "Inter_700Bold", letterSpacing: -0.5 },
+  header: { paddingHorizontal: 20, paddingBottom: 12, overflow: "visible" },
+  subtitle: { fontSize: 12, fontFamily: "Inter_500Medium", color: P.inkLight, letterSpacing: 3, textTransform: "uppercase" },
+  title: { fontSize: 38, fontFamily: "PlayfairDisplay_700Bold", color: P.ink, letterSpacing: -1 },
   monthNav: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginHorizontal: 16, paddingHorizontal: 16, paddingVertical: 12, borderRadius: 16, borderWidth: 1, marginBottom: 8 },
   navBtn: { width: 36, height: 36, alignItems: "center", justifyContent: "center" },
   monthTitle: { fontSize: 17, fontFamily: "Inter_600SemiBold" },
@@ -441,6 +473,9 @@ const styles = StyleSheet.create({
 
   emptyLog: { alignItems: "center", justifyContent: "center", gap: 10, paddingVertical: 40, paddingHorizontal: 32 },
   emptyLogText: { fontSize: 14, fontFamily: "Inter_400Regular", textAlign: "center", lineHeight: 22 },
+
+  devBtn: { alignSelf: "center", marginTop: 32, marginBottom: 8, paddingHorizontal: 16, paddingVertical: 10, borderRadius: 10, borderWidth: 1, borderColor: "#DDD0BC", borderStyle: "dashed" },
+  devBtnText: { fontSize: 12, fontFamily: "Inter_400Regular", color: "#A88B75" },
 
   // Modal
   modalOverlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.45)", justifyContent: "flex-end" },

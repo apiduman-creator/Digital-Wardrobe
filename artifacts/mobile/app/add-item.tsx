@@ -1,4 +1,4 @@
-import React, { useMemo, useState, useCallback } from "react";
+import React, { useMemo, useState, useCallback, useRef } from "react";
 import {
   View,
   Text,
@@ -9,13 +9,19 @@ import {
   Platform,
   Alert,
   Modal,
+  Image,
+  ActivityIndicator,
 } from "react-native";
 import { Feather } from "@expo/vector-icons";
 import { router } from "expo-router";
 import * as Haptics from "expo-haptics";
+import * as ImagePicker from "expo-image-picker";
+import * as ImageManipulator from "expo-image-manipulator";
+import * as FileSystem from "expo-file-system";
 import Colors, { CATEGORIES, OCCASIONS, COLOR_PALETTE } from "@/constants/colors";
 import { useCloset, Category, Season, Occasion } from "@/context/ClosetContext";
 import { SEASON_LABELS } from "@/utils/outfitLogic";
+import { hexToColorName } from "@/utils/colorName";
 import { LinearGradient } from "expo-linear-gradient";
 import WheelColorPicker from "react-native-wheel-color-picker";
 
@@ -157,16 +163,183 @@ export default function AddItemScreen() {
   const [selectedColorIds, setSelectedColorIds] = useState<string[]>(["Black"]);
   const [customColors, setCustomColors] = useState<ColorOption[]>([]);
   const [wheelVisible, setWheelVisible] = useState(false);
-  const [wheelHex, setWheelHex] = useState("#1A1A1A");
+  const [wheelHex, setWheelHex] = useState("#E74C3C");
+  // Picker'a geçilen stabil başlangıç rengi — state değil ref, böylece
+  // onColorChange → setWheelHex render döngüsü picker thumb'ını sıfırlamaz
+  const wheelInitialColorRef = useRef("#E74C3C");
+  const [wheelPickerKey, setWheelPickerKey] = useState(0);
   const [seasons, setSeasons] = useState<Season[]>(["spring", "summer", "fall", "winter"]);
-  const [occasion, setOccasion] = useState<Occasion>("casual");
+  const [occasions, setOccasions] = useState<Occasion[]>(["casual"]);
   const [brand, setBrand] = useState("");
   const [notes, setNotes] = useState("");
   const [saving, setSaving] = useState(false);
+  const [editingColorId, setEditingColorId] = useState<string | null>(null);
+  const [colorMenuColorId, setColorMenuColorId] = useState<string | null>(null);
+
+  // ── AI Fotoğraf Analizi ───────────────────────────────────────────────────
+  const [photoUri, setPhotoUri] = useState<string | null>(null);       // preview URI (temp)
+  const [savedPhotoUri, setSavedPhotoUri] = useState<string | null>(null); // permanent URI
+  const [analyzing, setAnalyzing] = useState(false);
+  const [aiDone, setAiDone] = useState(false);
+
+  const analyzeImage = useCallback(async (base64: string, mimeType: string) => {
+    const apiUrl = process.env.EXPO_PUBLIC_API_URL;
+    if (!apiUrl) {
+      Alert.alert("Yapılandırma Hatası", "EXPO_PUBLIC_API_URL .env dosyasında tanımlı değil.");
+      return;
+    }
+    console.log("[analyzeImage] fetch URL:", `${apiUrl}/api/analyze-clothing`);
+    setAnalyzing(true);
+    try {
+      const res = await fetch(`${apiUrl}/api/analyze-clothing`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ base64, mimeType }),
+      });
+
+      const data = await res.json() as {
+        error?: string;
+        not_clothing?: boolean;
+        blocked?: boolean;
+        strikes?: number;
+        name?: string;
+        category?: string;
+        color?: string;
+        colorHex?: string;
+        brand?: string | null;
+        occasions?: string[];
+        seasons?: string[];
+      };
+
+      if (!res.ok) {
+        if (data.not_clothing) {
+          const msg = data.blocked
+            ? data.error ?? "24 saat erişim engellendi."
+            : data.error ?? "Fotoğrafta kıyafet tespit edilemedi.";
+          Alert.alert("Kıyafet Bulunamadı", msg);
+          return;
+        }
+        throw new Error(data.error ?? `Sunucu hatası: ${res.status}`);
+      }
+
+      const result = data;
+
+      if (result.name) setName(result.name);
+
+      if (result.category && CATEGORIES.some((c) => c.id === result.category)) {
+        setCategory(result.category as Category);
+      }
+
+      if (result.brand) setBrand(result.brand);
+
+      if (Array.isArray(result.occasions)) {
+        const valid = result.occasions.filter((o) =>
+          OCCASIONS.includes(o as Occasion)
+        ) as Occasion[];
+        if (valid.length > 0) setOccasions(valid);
+      }
+
+      if (Array.isArray(result.seasons)) {
+        const valid = result.seasons.filter((s) =>
+          ITEM_SEASONS.includes(s as Season)
+        ) as Season[];
+        if (valid.length > 0) setSeasons(valid);
+      }
+
+      if (result.colorHex) {
+        const hex = result.colorHex.startsWith("#")
+          ? result.colorHex.toUpperCase()
+          : `#${result.colorHex.toUpperCase()}`;
+        const baseMatch = BASE_COLORS.find((c) => c.hex.toUpperCase() === hex);
+        if (baseMatch) {
+          setSelectedColorIds([baseMatch.id]);
+        } else {
+          const colorName = result.color ?? hexToColorName(hex);
+          const customId = `custom:${hex}`;
+          setCustomColors((prev) =>
+            prev.some((c) => c.id === customId) ? prev : [...prev, { id: customId, name: colorName, hex }]
+          );
+          setSelectedColorIds([customId]);
+        }
+      }
+
+      setAiDone(true);
+      if (Platform.OS !== "web") Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    } catch (err) {
+      Alert.alert("Analiz Hatası", err instanceof Error ? err.message : "Bilinmeyen bir hata oluştu.");
+    } finally {
+      setAnalyzing(false);
+    }
+  }, []);
+
+  const pickImage = useCallback(async (source: "camera" | "gallery") => {
+    try {
+      let pickerResult: ImagePicker.ImagePickerResult;
+      const opts: ImagePicker.ImagePickerOptions = {
+        mediaTypes: ["images"],
+        quality: 0.4,
+        base64: false,
+      };
+
+      if (source === "camera") {
+        const { status } = await ImagePicker.requestCameraPermissionsAsync();
+        if (status !== "granted") {
+          Alert.alert("İzin Gerekli", "Kamera kullanmak için izin verin.");
+          return;
+        }
+        pickerResult = await ImagePicker.launchCameraAsync(opts);
+      } else {
+        const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+        if (status !== "granted") {
+          Alert.alert("İzin Gerekli", "Galeriye erişmek için izin verin.");
+          return;
+        }
+        pickerResult = await ImagePicker.launchImageLibraryAsync(opts);
+      }
+
+      if (!pickerResult.canceled && pickerResult.assets[0]) {
+        const asset = pickerResult.assets[0];
+        setPhotoUri(asset.uri);
+        setAiDone(false);
+        const manipulated = await ImageManipulator.manipulateAsync(
+          asset.uri,
+          [{ resize: { width: 800, height: 800 } }],
+          { compress: 0.4, format: ImageManipulator.SaveFormat.JPEG, base64: true },
+        );
+        // Kalıcı klasöre kaydet
+        const dir = `${FileSystem.documentDirectory}closet-photos/`;
+        await FileSystem.makeDirectoryAsync(dir, { intermediates: true });
+        const filename = `${Date.now()}.jpg`;
+        const dest = `${dir}${filename}`;
+        await FileSystem.copyAsync({ from: manipulated.uri, to: dest });
+        setSavedPhotoUri(dest);
+        if (manipulated.base64) {
+          const b64 = manipulated.base64;
+          Alert.alert(
+            "Fotoğrafı Analiz Et",
+            "Bu fotoğrafı yapay zeka ile analiz etmek ister misiniz?",
+            [
+              { text: "Hayır", style: "cancel" },
+              { text: "Evet", onPress: () => analyzeImage(b64, "image/jpeg") },
+            ]
+          );
+        }
+      }
+    } catch {
+      Alert.alert("Hata", "Fotoğraf seçilirken sorun oluştu.");
+    }
+  }, [analyzeImage]);
+  // ─────────────────────────────────────────────────────────────────────────
 
   const toggleSeason = (s: Season) => {
     setSeasons((prev) =>
       prev.includes(s) ? prev.filter((x) => x !== s) : [...prev, s]
+    );
+  };
+
+  const toggleOccasion = (o: Occasion) => {
+    setOccasions((prev) =>
+      prev.includes(o) ? prev.filter((x) => x !== o) : [...prev, o]
     );
   };
 
@@ -175,12 +348,16 @@ export default function AddItemScreen() {
     value: c.id,
   }));
 
+  const OCCASION_LABELS: Record<string, string> = {
+    casual: "Günlük", work: "İş", formal: "Resmi",
+    sport: "Spor", lounge: "Ev", special: "Özel",
+  };
   const occasionOptions = OCCASIONS.map((o) => ({
-    label: o.charAt(0).toUpperCase() + o.slice(1),
+    label: OCCASION_LABELS[o] ?? o,
     value: o,
   }));
 
-  const canSave = name.trim().length > 0 && seasons.length > 0;
+  const canSave = name.trim().length > 0 && seasons.length > 0 && occasions.length > 0;
 
   const availableColors = useMemo(() => [...BASE_COLORS, ...customColors], [customColors]);
 
@@ -194,18 +371,41 @@ export default function AddItemScreen() {
 
   const isRainbow = selectedColors.length >= 3;
 
-  const handleCustomColorSelected = useCallback((hex: string) => {
-    const normalized = hex.toUpperCase();
-    const customId = `custom:${normalized}`;
-    const customName = `Özel ${normalized}`;
-
-    setCustomColors((prev) => {
-      if (prev.some((c) => c.id === customId)) return prev;
-      return [...prev, { id: customId, name: customName, hex: normalized }];
-    });
-    setSelectedColorIds((prev) => (prev.includes(customId) ? prev : [...prev, customId]));
-    setWheelVisible(false);
+  // Sadece wheelHex state'ini günceller — modal kapanmaz
+  // react-native-wheel-color-picker bazen '#' olmadan hex döndürür, normalize et
+  const handleWheelColorChange = useCallback((hex: string) => {
+    const normalized = hex.startsWith("#") ? hex.toUpperCase() : `#${hex.toUpperCase()}`;
+    setWheelHex(normalized);
   }, []);
+
+  // Onay butonuna basınca çağrılır
+  const handleConfirmCustomColor = useCallback(() => {
+    // '#' prefix garantisi — picker bazen olmadan döndürebilir
+    const normalized = wheelHex.startsWith("#") ? wheelHex.toUpperCase() : `#${wheelHex.toUpperCase()}`;
+    const humanName = hexToColorName(normalized);
+
+    if (editingColorId) {
+      // Mevcut custom rengi güncelle
+      const newId = `custom:${normalized}`;
+      setCustomColors((prev) =>
+        prev.map((c) => c.id === editingColorId ? { id: newId, name: humanName, hex: normalized } : c)
+      );
+      setSelectedColorIds((prev) =>
+        prev.map((id) => id === editingColorId ? newId : id)
+      );
+    } else {
+      // Yeni custom renk ekle
+      const customId = `custom:${normalized}`;
+      setCustomColors((prev) => {
+        if (prev.some((c) => c.id === customId)) return prev;
+        return [...prev, { id: customId, name: humanName, hex: normalized }];
+      });
+      setSelectedColorIds((prev) => (prev.includes(customId) ? prev : [...prev, customId]));
+    }
+
+    setEditingColorId(null);
+    setWheelVisible(false);
+  }, [wheelHex, editingColorId]);
 
   const colorLabel = useMemo(() => {
     if (selectedColors.length <= 1) return primaryColor.name;
@@ -222,6 +422,10 @@ export default function AddItemScreen() {
       Alert.alert("Hata", "En az bir mevsim seçmelisiniz.");
       return;
     }
+    if (occasions.length === 0) {
+      Alert.alert("Hata", "En az bir kullanım amacı seçmelisiniz.");
+      return;
+    }
     setSaving(true);
     if (Platform.OS !== "web") Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     await addItem({
@@ -231,7 +435,8 @@ export default function AddItemScreen() {
       colorHex: primaryColor.hex,
       brand: brand.trim() || undefined,
       seasons,
-      occasion,
+      occasion: JSON.stringify(occasions),
+      imageUri: savedPhotoUri || undefined,
       notes: notes.trim() || undefined,
       favorite: false,
     });
@@ -245,6 +450,94 @@ export default function AddItemScreen() {
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
       >
+        {/* ── AI Fotoğraf Analizi ──────────────────────────────────────────── */}
+        <View style={styles.fieldGroup}>
+          <View style={styles.labelRow}>
+            <Text style={[styles.label, { color: C.textSecondary }]}>AI ile Otomatik Doldur</Text>
+            {aiDone && (
+              <View style={styles.aiDoneBadge}>
+                <Feather name="check-circle" size={11} color="#34C759" />
+                <Text style={styles.aiDoneBadgeText}>Tamamlandı</Text>
+              </View>
+            )}
+          </View>
+
+          {!photoUri ? (
+            <View style={styles.photoButtons}>
+              <Pressable
+                onPress={() => pickImage("camera")}
+                style={[styles.photoBtn, { backgroundColor: C.chip }]}
+              >
+                <Feather name="camera" size={18} color={C.tint} />
+                <Text style={[styles.photoBtnText, { color: C.text }]}>Fotoğraf Çek</Text>
+              </Pressable>
+              <Pressable
+                onPress={() => pickImage("gallery")}
+                style={[styles.photoBtn, { backgroundColor: C.chip }]}
+              >
+                <Feather name="image" size={18} color={C.tint} />
+                <Text style={[styles.photoBtnText, { color: C.text }]}>Galeriden Seç</Text>
+              </Pressable>
+            </View>
+          ) : (
+            <View style={styles.photoPreviewRow}>
+              {/* Küçük önizleme */}
+              <View>
+                <Image source={{ uri: photoUri }} style={styles.photoThumb} />
+                {analyzing && (
+                  <View style={styles.photoOverlay}>
+                    <ActivityIndicator color="#FFF" size="small" />
+                  </View>
+                )}
+              </View>
+
+              {/* Durum + aksiyonlar */}
+              <View style={styles.photoInfoCol}>
+                {analyzing ? (
+                  <>
+                    <Text style={[styles.photoStatusTitle, { color: C.tint }]}>Analiz ediliyor…</Text>
+                    <Text style={[styles.photoStatusSub, { color: C.textTertiary }]}>AI kıyafeti tanıyor</Text>
+                  </>
+                ) : aiDone ? (
+                  <>
+                    <Text style={[styles.photoStatusTitle, { color: "#34C759" }]}>AI tamamladı ✓</Text>
+                    <Text style={[styles.photoStatusSub, { color: C.textTertiary }]}>Alanları düzenleyebilirsiniz</Text>
+                  </>
+                ) : (
+                  <Text style={[styles.photoStatusSub, { color: C.textTertiary }]}>Fotoğraf seçildi</Text>
+                )}
+
+                <View style={styles.photoActionRow}>
+                  <Pressable
+                    onPress={() => pickImage("camera")}
+                    disabled={analyzing}
+                    style={[styles.photoSmallBtn, { backgroundColor: C.chip }]}
+                  >
+                    <Feather name="camera" size={13} color={C.textSecondary} />
+                  </Pressable>
+                  <Pressable
+                    onPress={() => pickImage("gallery")}
+                    disabled={analyzing}
+                    style={[styles.photoSmallBtn, { backgroundColor: C.chip }]}
+                  >
+                    <Feather name="image" size={13} color={C.textSecondary} />
+                  </Pressable>
+                  <Pressable
+                    onPress={() => { setPhotoUri(null); setAiDone(false); }}
+                    disabled={analyzing}
+                    style={[styles.photoSmallBtn, { backgroundColor: C.chip }]}
+                  >
+                    <Feather name="x" size={13} color={C.textSecondary} />
+                  </Pressable>
+                </View>
+              </View>
+            </View>
+          )}
+        </View>
+
+        {/* Bölücü */}
+        <View style={[styles.divider, { backgroundColor: C.separator }]} />
+
         {/* Name */}
         <View style={styles.fieldGroup}>
           <Text style={[styles.label, { color: C.textSecondary }]}>Ürün Adı *</Text>
@@ -310,6 +603,7 @@ export default function AddItemScreen() {
           <View style={styles.colorGrid}>
             {availableColors.map((color) => {
               const isSelected = selectedColorIds.includes(color.id);
+              const isCustom = color.id.startsWith("custom:");
               return (
                 <Pressable
                   key={color.id}
@@ -320,6 +614,11 @@ export default function AddItemScreen() {
                         : [...prev, color.id]
                     );
                   }}
+                  onLongPress={isCustom ? () => {
+                    if (Platform.OS !== "web") Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+                    setColorMenuColorId(color.id);
+                  } : undefined}
+                  delayLongPress={400}
                   style={styles.colorItem}
                 >
                   <View
@@ -350,7 +649,11 @@ export default function AddItemScreen() {
             {/* Premium: custom color */}
             <Pressable
               onPress={() => {
-                setWheelHex(primaryColor.hex);
+                // Yeni renk için canlı başlangıç — siyah değil, canlı kırmızı
+                const initial = "#E74C3C";
+                wheelInitialColorRef.current = initial;
+                setWheelHex(initial);
+                setWheelPickerKey((k) => k + 1); // picker'ı yeniden mount et
                 setWheelVisible(true);
               }}
               style={[styles.colorItem, styles.plusColorItem]}
@@ -358,20 +661,30 @@ export default function AddItemScreen() {
               <View style={[styles.colorDot, styles.plusColorDot, { borderColor: C.tint }]}>
                 <Feather name="plus" size={18} color={C.tint} />
               </View>
-              <Text style={[styles.colorLabel, { color: C.tint }]}>+</Text>
             </Pressable>
           </View>
         </View>
 
         {/* Advanced: color wheel */}
         {wheelVisible && (
-          <Modal transparent animationType="slide" visible onRequestClose={() => setWheelVisible(false)}>
+          <Modal
+            transparent
+            animationType="slide"
+            visible
+            onRequestClose={() => { setEditingColorId(null); setWheelVisible(false); }}
+          >
             <View style={styles.wheelModalOverlay}>
               <View style={[styles.wheelModal, { backgroundColor: C.backgroundSecondary }]}>
                 <View style={styles.wheelHeader}>
-                  <Text style={[styles.wheelTitle, { color: C.text }]}>Özel Renk</Text>
+                  <View style={styles.wheelTitleRow}>
+                    {/* Seçilen rengin canlı önizlemesi */}
+                    <View style={[styles.wheelPreviewDot, { backgroundColor: wheelHex }]} />
+                    <Text style={[styles.wheelTitle, { color: C.text }]}>
+                      {editingColorId ? "Rengi Değiştir" : "Özel Renk"}
+                    </Text>
+                  </View>
                   <Pressable
-                    onPress={() => setWheelVisible(false)}
+                    onPress={() => { setEditingColorId(null); setWheelVisible(false); }}
                     style={[styles.wheelCloseBtn, { backgroundColor: C.chip }]}
                     hitSlop={10}
                   >
@@ -379,28 +692,125 @@ export default function AddItemScreen() {
                   </Pressable>
                 </View>
                 <View style={styles.wheelBody}>
+                  {/*
+                    key={wheelPickerKey}: Her açılışta picker yeniden mount edilir,
+                      doğru başlangıç rengiyle başlar.
+                    color={wheelInitialColorRef.current}: Stabil ref — state değil.
+                      onColorChange → setWheelHex → re-render olduğunda picker
+                      bu prop'u değişmiş görmez, thumb pozisyonu sıfırlanmaz.
+                  */}
                   <WheelColorPicker
-                    color={wheelHex}
-                    onColorChangeComplete={(hex) => handleCustomColorSelected(hex)}
+                    key={wheelPickerKey}
+                    color={wheelInitialColorRef.current}
+                    onColorChange={handleWheelColorChange}
+                    onColorChangeComplete={handleWheelColorChange}
                     thumbSize={38}
                     sliderSize={20}
                   />
                 </View>
+                <Pressable
+                  onPress={handleConfirmCustomColor}
+                  style={[styles.wheelConfirmBtn, { backgroundColor: C.tint }]}
+                >
+                  <Feather name="check" size={18} color="#FFF" />
+                  <Text style={styles.wheelConfirmText}>
+                    {editingColorId ? "Güncelle" : "Rengi Ekle"}
+                  </Text>
+                </Pressable>
               </View>
             </View>
+          </Modal>
+        )}
+
+        {/* Custom renk long-press action sheet */}
+        {colorMenuColorId && (
+          <Modal
+            transparent
+            animationType="slide"
+            visible
+            onRequestClose={() => setColorMenuColorId(null)}
+          >
+            <Pressable
+              style={styles.actionSheetOverlay}
+              onPress={() => setColorMenuColorId(null)}
+            >
+              <View style={[styles.actionSheet, { backgroundColor: C.backgroundSecondary }]}>
+                <View style={[styles.actionSheetHandle, { backgroundColor: C.separator }]} />
+
+                <Pressable
+                  style={styles.actionSheetItem}
+                  onPress={() => {
+                    const color = customColors.find((c) => c.id === colorMenuColorId);
+                    if (color) {
+                      wheelInitialColorRef.current = color.hex;
+                      setWheelHex(color.hex);
+                      setWheelPickerKey((k) => k + 1);
+                      setEditingColorId(colorMenuColorId);
+                      setWheelVisible(true);
+                    }
+                    setColorMenuColorId(null);
+                  }}
+                >
+                  <Feather name="edit-2" size={20} color={C.text} />
+                  <Text style={[styles.actionSheetItemText, { color: C.text }]}>Rengi Değiştir</Text>
+                </Pressable>
+
+                <View style={[styles.actionSheetDivider, { backgroundColor: C.separator }]} />
+
+                <Pressable
+                  style={styles.actionSheetItem}
+                  onPress={() => {
+                    if (Platform.OS !== "web") Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+                    setCustomColors((prev) => prev.filter((c) => c.id !== colorMenuColorId));
+                    setSelectedColorIds((prev) => prev.filter((id) => id !== colorMenuColorId));
+                    setColorMenuColorId(null);
+                  }}
+                >
+                  <Feather name="trash-2" size={20} color={C.destructive} />
+                  <Text style={[styles.actionSheetItemText, { color: C.destructive }]}>Sil</Text>
+                </Pressable>
+              </View>
+            </Pressable>
           </Modal>
         )}
 
         {/* Season — multi-select */}
         <SeasonMultiSelect selected={seasons} onToggle={toggleSeason} />
 
-        {/* Occasion */}
-        <ChipSelector
-          label="Kullanım *"
-          options={occasionOptions}
-          selected={occasion}
-          onSelect={(v) => setOccasion(v as Occasion)}
-        />
+        {/* Occasion — multi-select */}
+        <View style={styles.fieldGroup}>
+          <View style={styles.labelRow}>
+            <Text style={[styles.label, { color: C.textSecondary }]}>Kullanım *</Text>
+            {occasions.length === 0 && (
+              <Text style={[styles.labelHint, { color: C.destructive }]}>En az 1 seçin</Text>
+            )}
+          </View>
+          <View style={styles.chipWrap}>
+            {occasionOptions.map((opt) => {
+              const isSelected = occasions.includes(opt.value as Occasion);
+              return (
+                <Pressable
+                  key={opt.value}
+                  onPress={() => toggleOccasion(opt.value as Occasion)}
+                  style={[
+                    styles.chip,
+                    { backgroundColor: isSelected ? C.tint : C.chip, borderColor: isSelected ? C.tint : "transparent" },
+                  ]}
+                >
+                  <Text
+                    style={[
+                      styles.chipText,
+                      { color: isSelected ? "#FFF" : C.textSecondary, fontFamily: isSelected ? "Inter_600SemiBold" : "Inter_500Medium" },
+                    ]}
+                  >
+                    {opt.label}
+                  </Text>
+                  {isSelected && <Feather name="check" size={12} color="#FFF" />}
+                </Pressable>
+              );
+            })}
+          </View>
+        </View>
 
         {/* Notes */}
         <View style={styles.fieldGroup}>
@@ -444,7 +854,7 @@ const styles = StyleSheet.create({
   input: { borderRadius: 12, paddingHorizontal: 14, paddingVertical: 13, fontSize: 15, fontFamily: "Inter_400Regular" },
   textArea: { height: 90, textAlignVertical: "top", paddingTop: 13 },
   chipWrap: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
-  chip: { paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20, borderWidth: 1.5 },
+  chip: { flexDirection: "row", alignItems: "center", gap: 5, paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20, borderWidth: 1.5 },
   seasonChip: {
     flexDirection: "row",
     alignItems: "center",
@@ -503,7 +913,7 @@ const styles = StyleSheet.create({
     padding: 16,
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
-    minHeight: 360,
+    minHeight: 420,
     gap: 12,
   },
   wheelHeader: {
@@ -511,6 +921,18 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "space-between",
     paddingVertical: 4,
+  },
+  wheelTitleRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+  },
+  wheelPreviewDot: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: "rgba(0,0,0,0.08)",
   },
   wheelTitle: {
     fontSize: 14,
@@ -528,7 +950,86 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
+  wheelConfirmBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    paddingVertical: 14,
+    borderRadius: 14,
+    marginTop: 4,
+  },
+  wheelConfirmText: {
+    color: "#FFF",
+    fontSize: 15,
+    fontFamily: "Inter_600SemiBold",
+  },
+  // Custom color action sheet
+  actionSheetOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.35)",
+    justifyContent: "flex-end",
+  },
+  actionSheet: {
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    paddingBottom: Platform.OS === "ios" ? 36 : 20,
+    paddingHorizontal: 16,
+    paddingTop: 12,
+  },
+  actionSheetHandle: {
+    width: 36,
+    height: 4,
+    borderRadius: 2,
+    alignSelf: "center",
+    marginBottom: 16,
+  },
+  actionSheetItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 14,
+    paddingVertical: 16,
+    paddingHorizontal: 4,
+  },
+  actionSheetItemText: {
+    fontSize: 16,
+    fontFamily: "Inter_500Medium",
+  },
+  actionSheetDivider: {
+    height: 1,
+    marginHorizontal: 0,
+  },
   footer: { position: "absolute", bottom: 0, left: 0, right: 0, padding: 20, paddingBottom: Platform.OS === "ios" ? 36 : 20, borderTopWidth: 1 },
   saveBtn: { flexDirection: "row", alignItems: "center", justifyContent: "center", paddingVertical: 16, borderRadius: 14, gap: 8 },
   saveBtnText: { fontSize: 16, fontFamily: "Inter_600SemiBold" },
+
+  // AI fotoğraf analizi
+  divider: { height: 1 },
+  aiDoneBadge: { flexDirection: "row", alignItems: "center", gap: 4 },
+  aiDoneBadgeText: { fontSize: 11, fontFamily: "Inter_600SemiBold", color: "#34C759" },
+  photoButtons: { flexDirection: "row", gap: 10 },
+  photoBtn: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    paddingVertical: 14,
+    borderRadius: 14,
+  },
+  photoBtnText: { fontSize: 14, fontFamily: "Inter_500Medium" },
+  photoPreviewRow: { flexDirection: "row", gap: 14, alignItems: "flex-start" },
+  photoThumb: { width: 80, height: 80, borderRadius: 12 },
+  photoOverlay: {
+    position: "absolute", top: 0, left: 0, width: 80, height: 80,
+    backgroundColor: "rgba(0,0,0,0.50)",
+    borderRadius: 12,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  photoInfoCol: { flex: 1, gap: 4, paddingTop: 2 },
+  photoStatusTitle: { fontSize: 13, fontFamily: "Inter_600SemiBold" },
+  photoStatusSub: { fontSize: 11, fontFamily: "Inter_400Regular" },
+  photoActionRow: { flexDirection: "row", gap: 8, marginTop: 8 },
+  photoSmallBtn: { width: 32, height: 32, borderRadius: 16, alignItems: "center", justifyContent: "center" },
 });

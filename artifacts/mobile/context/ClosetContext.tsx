@@ -15,11 +15,7 @@ export type Category =
   | "sleepwear"
   | "other";
 
-// Season for individual items — no "all", use seasons[] instead
-export type Season = "spring" | "summer" | "fall" | "winter";
-
-// OutfitSeason keeps "all" as an option for outfit-level filtering
-export type OutfitSeason = Season | "all";
+export type Season = "spring" | "summer" | "fall" | "winter" | "all";
 
 export type Occasion = "casual" | "work" | "formal" | "sport" | "lounge" | "special";
 
@@ -30,8 +26,10 @@ export interface ClosetItem {
   color: string;
   colorHex: string;
   brand?: string;
-  seasons: Season[];        // multi-season array
-  occasion: Occasion;
+  season: Season;           // single season string — matches backend text field
+  occasion: string;         // JSON stringified Occasion[] e.g. '["casual","work"]'
+  imageUri?: string;        // local file:// URI stored in documentDirectory
+  status?: "ready" | "dirty" | "washing" | "dry-cleaning";
   notes?: string;
   favorite: boolean;
   wearCount: number;
@@ -45,7 +43,7 @@ export interface Outfit {
   name: string;
   itemIds: string[];
   occasion: Occasion;
-  season: OutfitSeason;    // single season filter for outfit generation
+  season: Season;          // single season filter for outfit generation
   notes?: string;
   favorite: boolean;
   createdAt: string;
@@ -77,19 +75,14 @@ function generateId(): string {
   return Date.now().toString() + Math.random().toString(36).substr(2, 9);
 }
 
-// Migrate items from old format (season: string) to new format (seasons: Season[])
+// Migrate items from old array format (seasons: Season[]) to single-string format (season: Season)
 function migrateItem(raw: any): ClosetItem {
-  if (Array.isArray(raw.seasons)) return raw as ClosetItem;
-  // Old format had `season` as a single string
-  const oldSeason: string = raw.season ?? "all";
-  let seasons: Season[];
-  if (oldSeason === "all") {
-    seasons = ["spring", "summer", "fall", "winter"];
-  } else {
-    seasons = [oldSeason as Season];
-  }
-  const { season: _dropped, ...rest } = raw;
-  return { ...rest, seasons } as ClosetItem;
+  if (typeof raw.season === "string") return raw as ClosetItem;
+  // Old format had `seasons` as an array — pick the first entry or default to "all"
+  const arr: string[] = Array.isArray(raw.seasons) ? raw.seasons : [];
+  const season: Season = (arr.length > 0 ? arr[0] : "all") as Season;
+  const { seasons: _dropped, ...rest } = raw;
+  return { ...rest, season } as ClosetItem;
 }
 
 // ─── Context ──────────────────────────────────────────────────────────────────
@@ -191,7 +184,7 @@ export function ClosetProvider({ children }: { children: ReactNode }) {
         name: created.name,
         itemIds: created.itemIds,
         occasion: created.occasion as Occasion,
-        season: created.season as OutfitSeason,
+        season: created.season as Season,
         notes: created.notes,
         favorite: created.favorite,
         createdAt: created.createdAt,

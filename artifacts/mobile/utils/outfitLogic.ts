@@ -27,7 +27,8 @@ export function generateRandomOutfit(
       const catMatch = cats.includes(item.category);
       const seasonMatch =
         !season || season === "all" || item.seasons.includes(season as Season);
-      const occasionMatch = !occasion || item.occasion === occasion;
+      const itemOccasions: string[] = (() => { try { const p = JSON.parse(item.occasion); return Array.isArray(p) ? p : [item.occasion]; } catch { return [item.occasion]; } })();
+      const occasionMatch = !occasion || itemOccasions.includes(occasion);
       return catMatch && seasonMatch && occasionMatch;
     });
   };
@@ -53,8 +54,10 @@ export function suggestOutfitName(outfit: GeneratedOutfit): string {
   if (outfit.top) parts.push(outfit.top.color);
   if (outfit.bottom) parts.push(outfit.bottom.color);
   if (outfit.top?.occasion) {
-    const occasion = outfit.top.occasion;
-    const label = occasion.charAt(0).toUpperCase() + occasion.slice(1);
+    const raw = outfit.top.occasion;
+    const occasions: string[] = (() => { try { const p = JSON.parse(raw); return Array.isArray(p) ? p : [raw]; } catch { return [raw]; } })();
+    const first = occasions[0] ?? "";
+    const label = first.charAt(0).toUpperCase() + first.slice(1);
     return `${label} ${parts.join(" & ")} Look`;
   }
   return `${parts.join(" & ")} Outfit`;

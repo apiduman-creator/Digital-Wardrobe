@@ -1,22 +1,25 @@
 {
   "expo": {
-    "name": "Digital Closet",
-    "slug": "mobile",
+    "name": "gardirop",
+    "slug": "gardirop",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "mobile",
+    "scheme": "gardirop",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "splash": {
-      "image": "./assets/images/splash-icon.png",
+      "image": "./assets/images/splash.png",
       "resizeMode": "contain",
-      "backgroundColor": "#ffffff"
+      "backgroundColor": "#F9F3EA"
     },
     "ios": {
-      "supportsTablet": false
+      "supportsTablet": false,
+      "bundleIdentifier": "com.gardirop.app"
     },
-    "android": {},
+    "android": {
+      "package": "com.gardirop.app"
+    },
     "web": {
       "favicon": "./assets/images/icon.png"
     },

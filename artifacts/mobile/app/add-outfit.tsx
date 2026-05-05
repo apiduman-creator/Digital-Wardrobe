@@ -142,13 +142,19 @@ export default function AddOutfitScreen() {
     router.back();
   };
 
+  const SEASON_TR: Record<string, string> = {
+    all: "Tüm Mevsimler", spring: "İlkbahar", summer: "Yaz", fall: "Sonbahar", winter: "Kış",
+  };
+  const OCCASION_TR: Record<string, string> = {
+    casual: "Günlük", work: "İş", formal: "Resmi", sport: "Spor", lounge: "Ev", special: "Özel",
+  };
   const seasonOptions = SEASONS.map((s) => ({
-    label: s === "all" ? "Tüm Mevsimler" : s.charAt(0).toUpperCase() + s.slice(1),
+    label: SEASON_TR[s] ?? s,
     value: s,
   }));
 
   const occasionOptions = OCCASIONS.map((o) => ({
-    label: o.charAt(0).toUpperCase() + o.slice(1),
+    label: OCCASION_TR[o] ?? o,
     value: o,
   }));
 

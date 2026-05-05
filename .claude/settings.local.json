@@ -1,0 +1,26 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(find /c/Users/apidu/Downloads/\"Digital-Wardrobe \\(1\\)\"/Digital-Wardrobe -type f -name \"*.ts\" -o -name \"*.tsx\" -o -name \"*.json\")",
+      "Bash(ls:*)",
+      "Bash(find '/c/Users/apidu/Downloads/Digital-Wardrobe \\(1\\)/Digital-Wardrobe' -type d -name api-server)",
+      "Bash(find '/c/Users/apidu/Downloads/Digital-Wardrobe \\(1\\)/Digital-Wardrobe/lib/db' -type f -name *.ts -o -name *.sql)",
+      "Bash(find:*)",
+      "Bash(pnpm install:*)",
+      "Bash(pnpm approve-builds:*)",
+      "Bash(pnpm drizzle-kit:*)",
+      "Bash(PORT=3000 pnpm --filter @workspace/api-server dev)",
+      "Bash(curl -s http://localhost:3000/api/healthz)",
+      "Bash(curl -s http://localhost:3000/api/closet/items)",
+      "Bash(curl -s http://localhost:3000/api/outfits)",
+      "Bash(pnpm exec:*)",
+      "Bash(curl:*)",
+      "Bash(xargs grep:*)",
+      "Bash(node -e \"console.log\\(375\\)\")",
+      "Skill(claude-api)",
+      "Bash(npx claude-code-templates@latest --skill creative-design/frontend-design)",
+      "Bash(cat:*)",
+      "Bash(pnpm --filter @workspace/mobile typecheck)"
+    ]
+  }
+}
