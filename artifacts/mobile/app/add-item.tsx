@@ -190,11 +190,14 @@ export default function AddItemScreen() {
     }
     console.log("[analyzeImage] fetch URL:", `${apiUrl}/api/analyze-clothing`);
     setAnalyzing(true);
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 60000);
     try {
       const res = await fetch(`${apiUrl}/api/analyze-clothing`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ base64, mimeType }),
+        signal: controller.signal,
       });
 
       const data = await res.json() as {
@@ -266,8 +269,13 @@ export default function AddItemScreen() {
       setAiDone(true);
       if (Platform.OS !== "web") Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     } catch (err) {
-      Alert.alert("Analiz Hatası", err instanceof Error ? err.message : "Bilinmeyen bir hata oluştu.");
+      if (err instanceof Error && err.name === "AbortError") {
+        Alert.alert("Zaman Aşımı", "Analiz 60 saniyede tamamlanamadı. Lütfen tekrar deneyin.");
+      } else {
+        Alert.alert("Analiz Hatası", err instanceof Error ? err.message : "Bilinmeyen bir hata oluştu.");
+      }
     } finally {
+      clearTimeout(timeoutId);
       setAnalyzing(false);
     }
   }, []);
