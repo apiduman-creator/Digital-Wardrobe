@@ -18,6 +18,7 @@ import * as Haptics from "expo-haptics";
 import * as ImagePicker from "expo-image-picker";
 import * as ImageManipulator from "expo-image-manipulator";
 import * as FileSystem from "expo-file-system";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import Colors, { CATEGORIES, OCCASIONS, COLOR_PALETTE } from "@/constants/colors";
 import { useCloset, Category, Season, Occasion } from "@/context/ClosetContext";
 import { SEASON_LABELS } from "@/utils/outfitLogic";
@@ -323,14 +324,35 @@ export default function AddItemScreen() {
         setSavedPhotoUri(dest);
         if (manipulated.base64) {
           const b64 = manipulated.base64;
-          Alert.alert(
-            "Fotoğrafı Analiz Et",
-            "Bu fotoğrafı yapay zeka ile analiz etmek ister misiniz?",
-            [
-              { text: "Hayır", style: "cancel" },
-              { text: "Evet", onPress: () => analyzeImage(b64, "image/jpeg") },
-            ]
-          );
+          const showAnalysisAlert = () => {
+            Alert.alert(
+              "Fotoğrafı Analiz Et",
+              "Bu fotoğrafı yapay zeka ile analiz etmek ister misiniz?",
+              [
+                { text: "Hayır", style: "cancel" },
+                { text: "Evet", onPress: () => analyzeImage(b64, "image/jpeg") },
+              ]
+            );
+          };
+          const consentGiven = await AsyncStorage.getItem("ai_consent_given");
+          if (consentGiven !== "true") {
+            Alert.alert(
+              "Yapay Zeka Nasıl Çalışıyor?",
+              "Kıyafetini tanıyabilmemiz için fotoğrafını, yapay zeka ortağımız Anthropic'e (Claude) güvenli şekilde gönderiyoruz. Analiz bitince fotoğrafın orada tutulmuyor.",
+              [
+                { text: "Vazgeç", style: "cancel" },
+                {
+                  text: "Anladım, Devam Et",
+                  onPress: async () => {
+                    await AsyncStorage.setItem("ai_consent_given", "true");
+                    showAnalysisAlert();
+                  },
+                },
+              ]
+            );
+          } else {
+            showAnalysisAlert();
+          }
         }
       }
     } catch {

@@ -23,8 +23,9 @@ const C = Colors.light;
 
 type WelcomeStep = { type: "welcome" };
 type QuestionStep = { type: "question"; question: string; options: string[] };
+type AiConsentStep = { type: "ai_consent" };
 type CompleteStep = { type: "complete" };
-type OnboardingStep = WelcomeStep | QuestionStep | CompleteStep;
+type OnboardingStep = WelcomeStep | QuestionStep | AiConsentStep | CompleteStep;
 
 const STEPS: OnboardingStep[] = [
   { type: "welcome" },
@@ -58,10 +59,11 @@ const STEPS: OnboardingStep[] = [
     question: "Kaç kıyafetin var?",
     options: ["20'den az", "20–50 arası", "50–100 arası", "100'den fazla"],
   },
+  { type: "ai_consent" },
   { type: "complete" },
 ];
 
-const QUESTION_COUNT = STEPS.filter((s) => s.type === "question").length;
+const QUESTION_COUNT = STEPS.filter((s) => s.type === "question" || s.type === "ai_consent").length;
 
 const QUESTION_MASCOTS = [
   require("@/assets/images/mascot/suit.png"),
@@ -86,6 +88,7 @@ export default function OnboardingScreen() {
   const insets = useSafeAreaInsets();
   const [currentStep, setCurrentStep] = useState(0);
   const [selectedOption, setSelectedOption] = useState<number | null>(null);
+  const [consentChecked, setConsentChecked] = useState(false);
 
   const slideAnim = useRef(new Animated.Value(0)).current;
   const fadeAnim = useRef(new Animated.Value(1)).current;
@@ -94,6 +97,7 @@ export default function OnboardingScreen() {
   // Reset selection when step changes
   useEffect(() => {
     setSelectedOption(null);
+    setConsentChecked(false);
   }, [currentStep]);
 
   const goNext = useCallback(() => {
@@ -143,6 +147,11 @@ export default function OnboardingScreen() {
     [selectedOption, goNext, scaleAnim]
   );
 
+  const handleAiConsent = useCallback(async () => {
+    await AsyncStorage.setItem("ai_consent_given", "true");
+    goNext();
+  }, [goNext]);
+
   const handleComplete = useCallback(async () => {
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     await AsyncStorage.setItem("onboarding_completed", "true");
@@ -162,8 +171,8 @@ export default function OnboardingScreen() {
       {/* Decorative background circle */}
       <View style={styles.bgCircle} />
 
-      {/* Progress dots — shown only on question steps */}
-      {step.type === "question" && (
+      {/* Progress dots — shown on question and ai_consent steps */}
+      {(step.type === "question" || step.type === "ai_consent") && (
         <View style={styles.dotsRow}>
           {Array.from({ length: QUESTION_COUNT }).map((_, i) => (
             <Animated.View
@@ -246,6 +255,42 @@ export default function OnboardingScreen() {
               style={styles.questionMascot}
               resizeMode="contain"
             />
+          </View>
+        )}
+
+        {/* ── AI Consent ──────────────────────────────────────────────────── */}
+        {step.type === "ai_consent" && (
+          <View style={styles.centerContent}>
+            <Image
+              source={require("@/assets/images/mascot/basic.png")}
+              style={styles.mascotImage}
+              resizeMode="contain"
+            />
+
+            <Text style={styles.welcomeTitle}>Yapay Zeka Nasıl Çalışıyor?</Text>
+            <Text style={styles.welcomeBody}>
+              Kıyafetini tanıyabilmemiz için fotoğrafını, yapay zeka ortağımız Anthropic&apos;e
+              (Claude) güvenli şekilde gönderiyoruz. Analiz bitince fotoğrafın orada tutulmuyor.
+            </Text>
+
+            <Pressable
+              style={styles.consentCheckRow}
+              onPress={() => setConsentChecked((v) => !v)}
+            >
+              <View style={[styles.checkbox, consentChecked && styles.checkboxChecked]}>
+                {consentChecked && <Feather name="check" size={14} color="#fff" />}
+              </View>
+              <Text style={styles.consentCheckText}>Anladım, devam ediyorum</Text>
+            </Pressable>
+
+            <Pressable
+              style={[styles.primaryButton, !consentChecked && styles.primaryButtonDisabled]}
+              onPress={handleAiConsent}
+              disabled={!consentChecked}
+            >
+              <Text style={styles.primaryButtonText}>Devam Et</Text>
+              <Feather name="arrow-right" size={18} color="#fff" style={{ marginLeft: 8 }} />
+            </Pressable>
           </View>
         )}
 
@@ -397,6 +442,37 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: "#fff",
     letterSpacing: 0.3,
+  },
+
+  // ── AI Consent ────────────────────────────────────────────────────────────
+  consentCheckRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    alignSelf: "stretch",
+    marginBottom: 24,
+    gap: 12,
+  },
+  checkbox: {
+    width: 24,
+    height: 24,
+    borderRadius: 6,
+    borderWidth: 2,
+    borderColor: C.cardBorder,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  checkboxChecked: {
+    backgroundColor: C.tint,
+    borderColor: C.tint,
+  },
+  consentCheckText: {
+    fontFamily: "Inter_500Medium",
+    fontSize: 15,
+    color: C.text,
+    flex: 1,
+  },
+  primaryButtonDisabled: {
+    opacity: 0.4,
   },
 
   // ── Question ──────────────────────────────────────────────────────────────
