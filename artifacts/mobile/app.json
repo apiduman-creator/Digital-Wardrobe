@@ -15,7 +15,12 @@
     },
     "ios": {
       "supportsTablet": false,
-      "bundleIdentifier": "com.gardirop.app"
+      "bundleIdentifier": "com.gardirop.app",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false,
+        "NSCameraUsageDescription": "Gardırop, kıyafetlerinizin fotoğrafını çekip yapay zeka ile otomatik olarak tanımlayabilmesi için kameraya erişir.",
+        "NSPhotoLibraryUsageDescription": "Gardırop, gardırobunuza eklemek istediğiniz kıyafet fotoğraflarını seçebilmeniz için fotoğraflarınıza erişir."
+      }
     },
     "android": {
       "package": "com.gardirop.app"
@@ -36,6 +41,11 @@
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
+    },
+    "extra": {
+      "eas": {
+        "projectId": "13e3b561-bec7-40d3-90b9-27d56179c333"
+      }
     }
   }
 }
