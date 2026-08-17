@@ -12,7 +12,10 @@
       "distribution": "internal"
     },
     "production": {
-      "autoIncrement": true
+      "autoIncrement": true,
+      "env": {
+        "PNPM_CONFIG_NODE_LINKER": "hoisted"
+      }
     }
   },
   "submit": {
