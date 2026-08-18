@@ -28,7 +28,10 @@
       "Bash(pnpm config:*)",
       "Bash(python3 -c \"import sys,json; d=json.load\\(sys.stdin\\); print\\(d.get\\(''''auth'''',{}\\).get\\(''''sessionSecret'''',''''NOT_FOUND''''\\)[:20]+''''...'''' if d.get\\(''''auth'''',{}\\).get\\(''''sessionSecret''''\\) else ''''NO_TOKEN''''\\)\")",
       "Bash(powershell -Command \"Get-ChildItem -Path . -Filter node_modules -Recurse -Directory | Remove-Item -Recurse -Force\")",
-      "Bash(npx rimraf:*)"
+      "Bash(npx rimraf:*)",
+      "Bash(python3 -c \"import sys,json; d=json.load\\(sys.stdin\\); print\\(''''expo:'''', d[''''version'''']\\)\")",
+      "Bash(python3 -c \"import sys,json; d=json.load\\(sys.stdin\\); print\\(''''expo-modules-core:'''', d[''''version'''']\\)\")",
+      "Bash(python3 -c \"import sys,json; d=json.load\\(sys.stdin\\); print\\(''''expo-file-system:'''', d[''''version'''']\\)\")"
     ]
   }
 }
