@@ -31,7 +31,12 @@
       "Bash(npx rimraf:*)",
       "Bash(python3 -c \"import sys,json; d=json.load\\(sys.stdin\\); print\\(''''expo:'''', d[''''version'''']\\)\")",
       "Bash(python3 -c \"import sys,json; d=json.load\\(sys.stdin\\); print\\(''''expo-modules-core:'''', d[''''version'''']\\)\")",
-      "Bash(python3 -c \"import sys,json; d=json.load\\(sys.stdin\\); print\\(''''expo-file-system:'''', d[''''version'''']\\)\")"
+      "Bash(python3 -c \"import sys,json; d=json.load\\(sys.stdin\\); print\\(''''expo-file-system:'''', d[''''version'''']\\)\")",
+      "Bash(eas build:*)",
+      "Bash(eas submit:*)",
+      "Bash(claude doctor:*)",
+      "Bash(dir:*)",
+      "Bash(grep -i \"\\\\.md$\")"
     ]
   }
 }

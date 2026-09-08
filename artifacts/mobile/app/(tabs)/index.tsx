@@ -240,6 +240,14 @@ export default function ClosetScreen() {
 
       {StickyHeader}
 
+      {/* GEÇİCİ - Adım 2 testi için, sonra kaldırılacak */}
+      <Text
+        onPress={() => router.push("/auth-test")}
+        style={{ fontSize: 11, color: "#999", textAlign: "center", padding: 4 }}
+      >
+        [geçici: auth test]
+      </Text>
+
       <View style={styles.carouselWrapper}>
         <Animated.FlatList
           data={filtered}
