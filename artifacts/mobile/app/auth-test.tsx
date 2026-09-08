@@ -62,6 +62,21 @@ export default function AuthTestScreen() {
       >
         <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
           <Text style={[styles.title, { color: C.text }]}>Hesap Testi</Text>
+          <View
+            style={[
+              styles.resultBox,
+              { backgroundColor: token ? "#EAF7EE" : C.chip, borderColor: token ? C.success : C.cardBorder, marginBottom: 4 },
+            ]}
+          >
+            <Text style={[styles.resultLabel, { color: token ? C.success : C.textSecondary }]}>
+              {token ? "Kayıtlı token bulundu (AsyncStorage'dan yüklendi)" : "Kayıtlı token yok"}
+            </Text>
+            {token && (
+              <Text selectable style={[styles.resultText, { color: C.text }]} numberOfLines={1}>
+                {token}
+              </Text>
+            )}
+          </View>
           <Text style={[styles.subtitle, { color: C.textSecondary }]}>
             Bu ekran geçici bir test aracıdır — sadece backend'in register/login uçlarının
             doğru çalıştığını doğrulamak için var, kalıcı bir giriş akışı değildir.

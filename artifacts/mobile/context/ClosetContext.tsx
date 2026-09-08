@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode } from "react";
 import { createOutfit as apiCreateOutfit } from "@workspace/api-client-react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import * as FileSystem from "expo-file-system/legacy";
 
 // ─── Domain Types ────────────────────────────────────────────────────────────
 export type Category =
@@ -75,14 +76,36 @@ function generateId(): string {
   return Date.now().toString() + Math.random().toString(36).substr(2, 9);
 }
 
-// Migrate items from old array format (seasons: Season[]) to single-string format (season: Season)
+// Migrate items from old array format (seasons: Season[]) to single-string
+// format (season: Season). Ayrıca imageUri'yi HER YÜKLEMEDE güncel
+// documentDirectory değeriyle yeniden inşa eder — iOS, uygulama
+// güncellemeleri arasında bu klasörün adresini (container UUID)
+// değiştirebiliyor; dosyanın kendisi kaybolmuyor ama eski, donmuş yol
+// artık geçersiz kalıyor. Bu "kendi kendini onaran" adım olmadan,
+// normal bir TestFlight/App Store güncellemesi sonrası kullanıcı
+// fotoğraflarının "kaybolmuş" görünmesine sebep oluyordu (kök sebep
+// bulundu, 2026-09-08).
+function fixImageUri(imageUri: string | undefined): string | undefined {
+  if (!imageUri) return imageUri;
+  const marker = "closet-photos/";
+  const idx = imageUri.indexOf(marker);
+  if (idx === -1) return imageUri; // beklenmedik format, dokunma
+  const relativePart = imageUri.slice(idx); // "closet-photos/1736280000000.jpg"
+  return `${FileSystem.documentDirectory}${relativePart}`;
+}
+
 function migrateItem(raw: any): ClosetItem {
-  if (typeof raw.season === "string") return raw as ClosetItem;
-  // Old format had `seasons` as an array — pick the first entry or default to "all"
-  const arr: string[] = Array.isArray(raw.seasons) ? raw.seasons : [];
-  const season: Season = (arr.length > 0 ? arr[0] : "all") as Season;
-  const { seasons: _dropped, ...rest } = raw;
-  return { ...rest, season } as ClosetItem;
+  let item: any;
+  if (typeof raw.season === "string") {
+    item = raw;
+  } else {
+    // Old format had `seasons` as an array — pick the first entry or default to "all"
+    const arr: string[] = Array.isArray(raw.seasons) ? raw.seasons : [];
+    const season: Season = (arr.length > 0 ? arr[0] : "all") as Season;
+    const { seasons: _dropped, ...rest } = raw;
+    item = { ...rest, season };
+  }
+  return { ...item, imageUri: fixImageUri(item.imageUri) } as ClosetItem;
 }
 
 // ─── Context ──────────────────────────────────────────────────────────────────
