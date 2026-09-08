@@ -20,6 +20,7 @@ import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 
 import { ErrorBoundary } from "@/components/ErrorBoundary";
+import { AuthProvider } from "@/context/AuthContext";
 import { ClosetProvider } from "@/context/ClosetContext";
 import { CalendarProvider } from "@/context/CalendarContext";
 import Colors from "@/constants/colors";
@@ -135,11 +136,13 @@ export default function RootLayout() {
       <ErrorBoundary>
         <QueryClientProvider client={queryClient}>
           <GestureHandlerRootView>
+            <AuthProvider>
               <ClosetProvider>
                 <CalendarProvider>
                   <RootLayoutNav initialRoute={onboardingDone ? "(tabs)" : "onboarding"} />
                 </CalendarProvider>
               </ClosetProvider>
+            </AuthProvider>
           </GestureHandlerRootView>
         </QueryClientProvider>
       </ErrorBoundary>

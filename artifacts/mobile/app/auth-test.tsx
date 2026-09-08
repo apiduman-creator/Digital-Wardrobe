@@ -12,10 +12,9 @@ import {
 } from "react-native";
 import { Stack } from "expo-router";
 import Colors from "@/constants/colors";
+import { useAuth } from "@/context/AuthContext";
 
 const C = Colors.light;
-
-const API_BASE = process.env.EXPO_PUBLIC_API_URL;
 
 function isValidEmail(value: string) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim());
@@ -26,6 +25,7 @@ export default function AuthTestScreen() {
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState<"register" | "login" | null>(null);
   const [result, setResult] = useState<{ type: "success" | "error"; message: string } | null>(null);
+  const { register, login, token } = useAuth();
 
   const validate = () => {
     if (!isValidEmail(email)) {
@@ -43,29 +43,14 @@ export default function AuthTestScreen() {
     setResult(null);
     if (!validate()) return;
     setLoading(endpoint);
-    try {
-      const response = await fetch(`${API_BASE}/api/auth/${endpoint}`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: email.trim(), password }),
-      });
-      const data = await response.json();
-      if (!response.ok) {
-        setResult({
-          type: "error",
-          message: data?.error || data?.message || `İstek başarısız (${response.status}).`,
-        });
-        return;
-      }
-      setResult({ type: "success", message: data.token ?? JSON.stringify(data) });
-    } catch (err) {
-      setResult({
-        type: "error",
-        message: err instanceof Error ? err.message : "Bilinmeyen bir hata oluştu.",
-      });
-    } finally {
-      setLoading(null);
+    const action = endpoint === "register" ? register : login;
+    const outcome = await action(email, password);
+    if (outcome.success) {
+      setResult({ type: "success", message: token ?? "Token alındı, ama context henüz güncellenmedi." });
+    } else {
+      setResult({ type: "error", message: outcome.message });
     }
+    setLoading(null);
   };
 
   return (
