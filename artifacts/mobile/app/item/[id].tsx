@@ -433,6 +433,23 @@ export default function ItemDetailScreen() {
 
   const item = items.find((i) => i.id === id);
 
+  // NOT: Bu useCallback bilerek guard'dan (aşağıdaki `if (!item)`) ÖNCE
+  // duruyor. React kuralı: hook'lar hiçbir koşullu return'ün gerisinde
+  // kalamaz, sayıları/sırası her render'da sabit olmalı. Daha önce bu
+  // guard'dan SONRA tanımlıydı — kıyafet silinip `item` undefined
+  // olduğunda guard erken dönüyor, bu hook hiç çağrılmıyor, React
+  // "Rendered fewer hooks than expected" hatası fırlatıp ErrorBoundary'yi
+  // tetikliyordu (silme sonrası çökme bug'ının kök sebebi).
+  const handleSaveEdit = useCallback(async (updates: {
+    name: string; category: Category; color: string; colorHex: string;
+    seasons: Season[]; occasion: string; brand?: string; notes?: string;
+  }) => {
+    if (!item) return;
+    if (Platform.OS !== "web") Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    await updateItem(item.id, updates);
+    setEditVisible(false);
+  }, [item?.id, updateItem]);
+
   if (!item) {
     return (
       <View style={[styles.container, { backgroundColor: C.background }]}>
@@ -467,15 +484,6 @@ export default function ItemDetailScreen() {
     if (Platform.OS !== "web") Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     await toggleFavorite(item.id);
   };
-
-  const handleSaveEdit = useCallback(async (updates: {
-    name: string; category: Category; color: string; colorHex: string;
-    seasons: Season[]; occasion: string; brand?: string; notes?: string;
-  }) => {
-    if (Platform.OS !== "web") Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-    await updateItem(item.id, updates);
-    setEditVisible(false);
-  }, [item.id, updateItem]);
 
   const formatDate = (iso?: string) => {
     if (!iso) return "—";
