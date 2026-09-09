@@ -60,6 +60,7 @@ export function ColorSelector({ initialHex, required, size = "default", onChange
   const [wheelPickerKey, setWheelPickerKey] = useState(0);
   const [editingColorId, setEditingColorId] = useState<string | null>(null);
   const [colorMenuColorId, setColorMenuColorId] = useState<string | null>(null);
+  const [sheetVisible, setSheetVisible] = useState(false);
 
   const availableColors = useMemo(() => [...BASE_COLORS, ...customColors], [customColors]);
 
@@ -133,206 +134,243 @@ export function ColorSelector({ initialHex, required, size = "default", onChange
   return (
     <View style={styles.fieldGroup}>
       <Text style={[styles.label, { color: C.textSecondary }]}>{required ? "Renk *" : "Renk"}</Text>
-      <View style={[styles.selectedColorPreviewRow, sizing.selectedColorPreviewRow]}>
-        {isRainbow ? (
-          <LinearGradient
-            colors={RAINBOW_GRADIENT}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={sizing.selectedColorDotRainbow}
-          />
-        ) : (
-          <View
-            style={[
-              sizing.selectedColorDot,
-              {
-                backgroundColor: selectedColors.length === 0 ? "#E0E0E0" : primaryColor.hex,
-                borderColor:
-                  selectedColors.length === 2 && secondaryColor
-                    ? secondaryColor.hex
-                    : "transparent",
-                borderWidth: selectedColors.length === 2 ? 3 : 0,
-              },
-            ]}
-          />
-        )}
-        <Text style={[styles.selectedColorLabel, { color: C.textSecondary }]}>
-          {colorLabel}
-        </Text>
-      </View>
-      <View style={[styles.colorGrid, sizing.colorGrid]}>
-        {availableColors.map((color) => {
-          const isSelected = selectedColorIds.includes(color.id);
-          const isCustom = color.id.startsWith("custom:");
-          return (
-            <Pressable
-              key={color.id}
-              onPress={() => {
-                setSelectedColorIds((prev) =>
-                  prev.includes(color.id)
-                    ? prev.filter((n) => n !== color.id)
-                    : [...prev, color.id]
-                );
-              }}
-              onLongPress={isCustom ? () => {
-                if (Platform.OS !== "web") Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-                setColorMenuColorId(color.id);
-              } : undefined}
-              delayLongPress={400}
-              style={[styles.colorItem, sizing.colorItem]}
-            >
-              <View
-                style={[
-                  styles.colorDot,
-                  sizing.colorDot,
-                  { backgroundColor: color.hex },
-                  (color.name === "White" || color.name === "Cream")
-                    ? { borderWidth: 1, borderColor: "#E0DAD2" }
-                    : {},
-                  isSelected ? { borderWidth: 3, borderColor: C.tint } : {},
-                ]}
+
+      {/* Sadece seçili rengin önizlemesi — dokununca kartela açılır */}
+      <Pressable onPress={() => setSheetVisible(true)}>
+        <View style={[styles.selectedColorPreviewRow, sizing.selectedColorPreviewRow]}>
+          {isRainbow ? (
+            <LinearGradient
+              colors={RAINBOW_GRADIENT}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={sizing.selectedColorDotRainbow}
+            />
+          ) : (
+            <View
+              style={[
+                sizing.selectedColorDot,
+                {
+                  backgroundColor: selectedColors.length === 0 ? "#E0E0E0" : primaryColor.hex,
+                  borderColor:
+                    selectedColors.length === 2 && secondaryColor
+                      ? secondaryColor.hex
+                      : "transparent",
+                  borderWidth: selectedColors.length === 2 ? 3 : 0,
+                },
+              ]}
+            />
+          )}
+          <Text style={[styles.selectedColorLabel, { color: C.textSecondary }]}>
+            {colorLabel}
+          </Text>
+        </View>
+      </Pressable>
+
+      {/* Kartela: renk ızgarası + özel renk ekleme burada yaşıyor */}
+      <Modal
+        transparent
+        animationType="slide"
+        visible={sheetVisible}
+        onRequestClose={() => setSheetVisible(false)}
+      >
+        <View style={styles.sheetOverlay}>
+          <View style={[styles.sheetModal, { backgroundColor: C.backgroundSecondary }]}>
+            <View style={styles.sheetHeader}>
+              <Text style={[styles.sheetTitle, { color: C.text }]}>Renk Seç</Text>
+              <Pressable
+                onPress={() => setSheetVisible(false)}
+                style={[styles.sheetCloseBtn, { backgroundColor: C.chip }]}
+                hitSlop={10}
               >
-                {isSelected && (
-                  <Feather
-                    name="check"
-                    size={13}
-                    color={["White", "Cream", "Yellow"].includes(color.name) ? "#1A1A1A" : "#FFF"}
-                  />
-                )}
-              </View>
-              <Text style={[styles.colorLabel, sizing.colorLabel, { color: isSelected ? C.tint : C.textTertiary }]}>
-                {isCustom ? hexToColorName(color.hex) : (color.nameTr ?? color.name)}
-              </Text>
+                <Feather name="x" size={18} color={C.textSecondary} />
+              </Pressable>
+            </View>
+
+            <View style={[styles.colorGrid, sizing.colorGrid]}>
+              {availableColors.map((color) => {
+                const isSelected = selectedColorIds.includes(color.id);
+                const isCustom = color.id.startsWith("custom:");
+                return (
+                  <Pressable
+                    key={color.id}
+                    onPress={() => {
+                      setSelectedColorIds((prev) =>
+                        prev.includes(color.id)
+                          ? prev.filter((n) => n !== color.id)
+                          : [...prev, color.id]
+                      );
+                    }}
+                    onLongPress={isCustom ? () => {
+                      if (Platform.OS !== "web") Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+                      setColorMenuColorId(color.id);
+                    } : undefined}
+                    delayLongPress={400}
+                    style={[styles.colorItem, sizing.colorItem]}
+                  >
+                    <View
+                      style={[
+                        styles.colorDot,
+                        sizing.colorDot,
+                        { backgroundColor: color.hex },
+                        (color.name === "White" || color.name === "Cream")
+                          ? { borderWidth: 1, borderColor: "#E0DAD2" }
+                          : {},
+                        isSelected ? { borderWidth: 3, borderColor: C.tint } : {},
+                      ]}
+                    >
+                      {isSelected && (
+                        <Feather
+                          name="check"
+                          size={13}
+                          color={["White", "Cream", "Yellow"].includes(color.name) ? "#1A1A1A" : "#FFF"}
+                        />
+                      )}
+                    </View>
+                    <Text style={[styles.colorLabel, sizing.colorLabel, { color: isSelected ? C.tint : C.textTertiary }]}>
+                      {isCustom ? hexToColorName(color.hex) : (color.nameTr ?? color.name)}
+                    </Text>
+                  </Pressable>
+                );
+              })}
+
+              {/* Premium: custom color */}
+              <Pressable
+                onPress={() => {
+                  // Yeni renk için canlı başlangıç — siyah değil, canlı kırmızı
+                  const initial = "#E74C3C";
+                  wheelInitialColorRef.current = initial;
+                  setWheelHex(initial);
+                  setWheelPickerKey((k) => k + 1); // picker'ı yeniden mount et
+                  setWheelVisible(true);
+                }}
+                style={[styles.colorItem, sizing.colorItem, styles.plusColorItem]}
+              >
+                <View style={[styles.colorDot, sizing.colorDot, styles.plusColorDot, sizing.plusColorDot, { borderColor: C.tint }]}>
+                  <Feather name="plus" size={18} color={C.tint} />
+                </View>
+              </Pressable>
+            </View>
+
+            <Pressable
+              onPress={() => setSheetVisible(false)}
+              style={[styles.sheetConfirmBtn, { backgroundColor: C.tint }]}
+            >
+              <Feather name="check" size={18} color="#FFF" />
+              <Text style={styles.sheetConfirmText}>Tamam</Text>
             </Pressable>
-          );
-        })}
-
-        {/* Premium: custom color */}
-        <Pressable
-          onPress={() => {
-            // Yeni renk için canlı başlangıç — siyah değil, canlı kırmızı
-            const initial = "#E74C3C";
-            wheelInitialColorRef.current = initial;
-            setWheelHex(initial);
-            setWheelPickerKey((k) => k + 1); // picker'ı yeniden mount et
-            setWheelVisible(true);
-          }}
-          style={[styles.colorItem, sizing.colorItem, styles.plusColorItem]}
-        >
-          <View style={[styles.colorDot, sizing.colorDot, styles.plusColorDot, sizing.plusColorDot, { borderColor: C.tint }]}>
-            <Feather name="plus" size={18} color={C.tint} />
           </View>
-        </Pressable>
-      </View>
+        </View>
 
-      {/* Advanced: color wheel */}
-      {wheelVisible && (
-        <Modal
-          transparent
-          animationType="slide"
-          visible
-          onRequestClose={() => { setEditingColorId(null); setWheelVisible(false); }}
-        >
-          <View style={styles.wheelModalOverlay}>
-            <View style={[styles.wheelModal, { backgroundColor: C.backgroundSecondary }]}>
-              <View style={styles.wheelHeader}>
-                <View style={styles.wheelTitleRow}>
-                  {/* Seçilen rengin canlı önizlemesi */}
-                  <View style={[styles.wheelPreviewDot, { backgroundColor: wheelHex }]} />
-                  <Text style={[styles.wheelTitle, { color: C.text }]}>
-                    {editingColorId ? "Rengi Değiştir" : "Özel Renk"}
-                  </Text>
+        {/* Advanced: color wheel — kartela Modal'ının İÇİNDE render edilmeli
+            (kardeş değil), yoksa iOS'ta bu iç içe modal görünmeyebiliyor. */}
+        {wheelVisible && (
+          <Modal
+            transparent
+            animationType="slide"
+            visible
+            onRequestClose={() => { setEditingColorId(null); setWheelVisible(false); }}
+          >
+            <View style={styles.wheelModalOverlay}>
+              <View style={[styles.wheelModal, { backgroundColor: C.backgroundSecondary }]}>
+                <View style={styles.wheelHeader}>
+                  <View style={styles.wheelTitleRow}>
+                    {/* Seçilen rengin canlı önizlemesi */}
+                    <View style={[styles.wheelPreviewDot, { backgroundColor: wheelHex }]} />
+                    <Text style={[styles.wheelTitle, { color: C.text }]}>
+                      {editingColorId ? "Rengi Değiştir" : "Özel Renk"}
+                    </Text>
+                  </View>
+                  <Pressable
+                    onPress={() => { setEditingColorId(null); setWheelVisible(false); }}
+                    style={[styles.wheelCloseBtn, { backgroundColor: C.chip }]}
+                    hitSlop={10}
+                  >
+                    <Feather name="x" size={18} color={C.textSecondary} />
+                  </Pressable>
+                </View>
+                <View style={styles.wheelBody}>
+                  {/*
+                    key={wheelPickerKey}: Her açılışta picker yeniden mount edilir,
+                      doğru başlangıç rengiyle başlar.
+                    color={wheelInitialColorRef.current}: Stabil ref — state değil.
+                      onColorChange → setWheelHex → re-render olduğunda picker
+                      bu prop'u değişmiş görmez, thumb pozisyonu sıfırlanmaz.
+                  */}
+                  <WheelColorPicker
+                    key={wheelPickerKey}
+                    color={wheelInitialColorRef.current}
+                    onColorChange={handleWheelColorChange}
+                    onColorChangeComplete={handleWheelColorChange}
+                    thumbSize={38}
+                    sliderSize={20}
+                  />
                 </View>
                 <Pressable
-                  onPress={() => { setEditingColorId(null); setWheelVisible(false); }}
-                  style={[styles.wheelCloseBtn, { backgroundColor: C.chip }]}
-                  hitSlop={10}
+                  onPress={handleConfirmCustomColor}
+                  style={[styles.wheelConfirmBtn, { backgroundColor: C.tint }]}
                 >
-                  <Feather name="x" size={18} color={C.textSecondary} />
+                  <Feather name="check" size={18} color="#FFF" />
+                  <Text style={styles.wheelConfirmText}>
+                    {editingColorId ? "Güncelle" : "Rengi Ekle"}
+                  </Text>
                 </Pressable>
               </View>
-              <View style={styles.wheelBody}>
-                {/*
-                  key={wheelPickerKey}: Her açılışta picker yeniden mount edilir,
-                    doğru başlangıç rengiyle başlar.
-                  color={wheelInitialColorRef.current}: Stabil ref — state değil.
-                    onColorChange → setWheelHex → re-render olduğunda picker
-                    bu prop'u değişmiş görmez, thumb pozisyonu sıfırlanmaz.
-                */}
-                <WheelColorPicker
-                  key={wheelPickerKey}
-                  color={wheelInitialColorRef.current}
-                  onColorChange={handleWheelColorChange}
-                  onColorChangeComplete={handleWheelColorChange}
-                  thumbSize={38}
-                  sliderSize={20}
-                />
-              </View>
-              <Pressable
-                onPress={handleConfirmCustomColor}
-                style={[styles.wheelConfirmBtn, { backgroundColor: C.tint }]}
-              >
-                <Feather name="check" size={18} color="#FFF" />
-                <Text style={styles.wheelConfirmText}>
-                  {editingColorId ? "Güncelle" : "Rengi Ekle"}
-                </Text>
-              </Pressable>
             </View>
-          </View>
-        </Modal>
-      )}
+          </Modal>
+        )}
 
-      {/* Custom renk long-press action sheet */}
-      {colorMenuColorId && (
-        <Modal
-          transparent
-          animationType="slide"
-          visible
-          onRequestClose={() => setColorMenuColorId(null)}
-        >
-          <Pressable
-            style={styles.actionSheetOverlay}
-            onPress={() => setColorMenuColorId(null)}
+        {/* Custom renk long-press action sheet — aynı sebeple kartela Modal'ının İÇİNDE */}
+        {colorMenuColorId && (
+          <Modal
+            transparent
+            animationType="slide"
+            visible
+            onRequestClose={() => setColorMenuColorId(null)}
           >
-            <View style={[styles.actionSheet, { backgroundColor: C.backgroundSecondary }]}>
-              <View style={[styles.actionSheetHandle, { backgroundColor: C.separator }]} />
+            <Pressable
+              style={styles.actionSheetOverlay}
+              onPress={() => setColorMenuColorId(null)}
+            >
+              <View style={[styles.actionSheet, { backgroundColor: C.backgroundSecondary }]}>
+                <View style={[styles.actionSheetHandle, { backgroundColor: C.separator }]} />
 
-              <Pressable
-                style={styles.actionSheetItem}
-                onPress={() => {
-                  const color = customColors.find((c) => c.id === colorMenuColorId);
-                  if (color) {
-                    wheelInitialColorRef.current = color.hex;
-                    setWheelHex(color.hex);
-                    setWheelPickerKey((k) => k + 1);
-                    setEditingColorId(colorMenuColorId);
-                    setWheelVisible(true);
-                  }
-                  setColorMenuColorId(null);
-                }}
-              >
-                <Feather name="edit-2" size={20} color={C.text} />
-                <Text style={[styles.actionSheetItemText, { color: C.text }]}>Rengi Değiştir</Text>
-              </Pressable>
+                <Pressable
+                  style={styles.actionSheetItem}
+                  onPress={() => {
+                    const color = customColors.find((c) => c.id === colorMenuColorId);
+                    if (color) {
+                      wheelInitialColorRef.current = color.hex;
+                      setWheelHex(color.hex);
+                      setWheelPickerKey((k) => k + 1);
+                      setEditingColorId(colorMenuColorId);
+                      setWheelVisible(true);
+                    }
+                    setColorMenuColorId(null);
+                  }}
+                >
+                  <Feather name="edit-2" size={20} color={C.text} />
+                  <Text style={[styles.actionSheetItemText, { color: C.text }]}>Rengi Değiştir</Text>
+                </Pressable>
 
-              <View style={[styles.actionSheetDivider, { backgroundColor: C.separator }]} />
+                <View style={[styles.actionSheetDivider, { backgroundColor: C.separator }]} />
 
-              <Pressable
-                style={styles.actionSheetItem}
-                onPress={() => {
-                  if (Platform.OS !== "web") Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
-                  setCustomColors((prev) => prev.filter((c) => c.id !== colorMenuColorId));
-                  setSelectedColorIds((prev) => prev.filter((id) => id !== colorMenuColorId));
-                  setColorMenuColorId(null);
-                }}
-              >
-                <Feather name="trash-2" size={20} color={C.destructive} />
-                <Text style={[styles.actionSheetItemText, { color: C.destructive }]}>Sil</Text>
-              </Pressable>
-            </View>
-          </Pressable>
-        </Modal>
-      )}
+                <Pressable
+                  style={styles.actionSheetItem}
+                  onPress={() => {
+                    if (Platform.OS !== "web") Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+                    setCustomColors((prev) => prev.filter((c) => c.id !== colorMenuColorId));
+                    setSelectedColorIds((prev) => prev.filter((id) => id !== colorMenuColorId));
+                    setColorMenuColorId(null);
+                  }}
+                >
+                  <Feather name="trash-2" size={20} color={C.destructive} />
+                  <Text style={[styles.actionSheetItemText, { color: C.destructive }]}>Sil</Text>
+                </Pressable>
+              </View>
+            </Pressable>
+          </Modal>
+        )}
+      </Modal>
     </View>
   );
 }
@@ -361,6 +399,51 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     backgroundColor: "transparent",
+  },
+
+  // Kartela (renk ızgarası bottom sheet) — wheelModal pattern'i temel alındı
+  sheetOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.35)",
+    justifyContent: "flex-end",
+  },
+  sheetModal: {
+    padding: 16,
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    minHeight: 420,
+    gap: 12,
+  },
+  sheetHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingVertical: 4,
+  },
+  sheetTitle: {
+    fontSize: 14,
+    fontFamily: "Inter_600SemiBold",
+  },
+  sheetCloseBtn: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  sheetConfirmBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    paddingVertical: 14,
+    borderRadius: 14,
+    marginTop: 4,
+  },
+  sheetConfirmText: {
+    color: "#FFF",
+    fontSize: 15,
+    fontFamily: "Inter_600SemiBold",
   },
 
   // Color wheel modal
