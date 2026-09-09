@@ -134,10 +134,12 @@ function EditSheet({
   const secondaryColor = selectedColors[1];
   const isRainbow = selectedColors.length >= 3;
   const colorLabel = useMemo(() => {
-    if (selectedColors.length <= 1) return primaryColor.name;
-    if (selectedColors.length === 2) return `${primaryColor.name} + ${secondaryColor?.name}`;
+    if (selectedColors.length <= 1) return hexToColorName(primaryColor.hex);
+    if (selectedColors.length === 2 && secondaryColor) {
+      return `${hexToColorName(primaryColor.hex)} + ${hexToColorName(secondaryColor.hex)}`;
+    }
     return "Çok Renkli";
-  }, [primaryColor.name, secondaryColor?.name, selectedColors.length]);
+  }, [primaryColor.hex, secondaryColor?.hex, selectedColors.length]);
 
   const handleWheelColorChange = useCallback((hex: string) => {
     const normalized = hex.startsWith("#") ? hex.toUpperCase() : `#${hex.toUpperCase()}`;
@@ -262,7 +264,7 @@ function EditSheet({
                           <Feather name="check" size={12} color={["White", "Cream", "Yellow"].includes(color.name) ? "#1A1A1A" : "#FFF"} />
                         )}
                       </View>
-                      <Text style={[styles.colorLabel, { color: isSelected ? C.tint : C.textTertiary }]}>{color.name}</Text>
+                      <Text style={[styles.colorLabel, { color: isSelected ? C.tint : C.textTertiary }]}>{hexToColorName(color.hex)}</Text>
                     </Pressable>
                   );
                 })}

@@ -164,6 +164,7 @@ export function ClosetProvider({ children }: { children: ReactNode }) {
   }, [items]);
 
   const deleteItem = useCallback(async (id: string) => {
+    const itemToDelete = items.find((i) => i.id === id);
     const nextItems = items.filter((i) => i.id !== id);
     const nextOutfits = outfits.map((o) => ({
       ...o,
@@ -173,6 +174,17 @@ export function ClosetProvider({ children }: { children: ReactNode }) {
     await AsyncStorage.setItem(STORAGE_KEY_OUTFITS, JSON.stringify(nextOutfits));
     setItems(nextItems);
     setOutfits(nextOutfits);
+
+    // Fiziksel fotoğraf dosyasını temizle — bu ikincil bir iyileştirme,
+    // başarısız olsa bile kayıt silme işlemini engellemez.
+    const imageUri = fixImageUri(itemToDelete?.imageUri);
+    if (imageUri) {
+      try {
+        await FileSystem.deleteAsync(imageUri, { idempotent: true });
+      } catch (e) {
+        console.error("Failed to delete item photo:", e);
+      }
+    }
   }, [items, outfits]);
 
   const toggleFavorite = useCallback(async (id: string) => {

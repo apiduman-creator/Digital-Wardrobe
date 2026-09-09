@@ -439,10 +439,12 @@ export default function AddItemScreen() {
   }, [wheelHex, editingColorId]);
 
   const colorLabel = useMemo(() => {
-    if (selectedColors.length <= 1) return primaryColor.name;
-    if (selectedColors.length === 2) return `${primaryColor.name} + ${secondaryColor?.name}`;
+    if (selectedColors.length <= 1) return hexToColorName(primaryColor.hex);
+    if (selectedColors.length === 2 && secondaryColor) {
+      return `${hexToColorName(primaryColor.hex)} + ${hexToColorName(secondaryColor.hex)}`;
+    }
     return "Çok Renkli";
-  }, [primaryColor.name, secondaryColor?.name, selectedColors.length]);
+  }, [primaryColor.hex, secondaryColor?.hex, selectedColors.length]);
 
   const handleSave = async () => {
     if (!name.trim()) {
@@ -671,7 +673,7 @@ export default function AddItemScreen() {
                     )}
                   </View>
                   <Text style={[styles.colorLabel, { color: isSelected ? C.tint : C.textTertiary }]}>
-                    {color.name}
+                    {hexToColorName(color.hex)}
                   </Text>
                 </Pressable>
               );
