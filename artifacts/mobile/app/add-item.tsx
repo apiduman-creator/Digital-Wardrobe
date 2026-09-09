@@ -254,6 +254,8 @@ export default function AddItemScreen() {
         mediaTypes: ["images"],
         quality: 0.4,
         base64: false,
+        allowsEditing: true,
+        aspect: [25, 22],
       };
 
       if (source === "camera") {
@@ -278,7 +280,7 @@ export default function AddItemScreen() {
         setAiDone(false);
         const manipulated = await ImageManipulator.manipulateAsync(
           asset.uri,
-          [{ resize: { width: 800, height: 800 } }],
+          [{ resize: { width: 800 } }],
           { compress: 0.4, format: ImageManipulator.SaveFormat.JPEG, base64: true },
         );
         // Kalıcı klasöre kaydet
