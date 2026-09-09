@@ -28,11 +28,12 @@ import WheelColorPicker from "react-native-wheel-color-picker";
 
 const ITEM_SEASONS: Season[] = ["spring", "summer", "fall", "winter"];
 
-type ColorOption = { id: string; name: string; hex: string };
+type ColorOption = { id: string; name: string; nameTr?: string; hex: string };
 
 const BASE_COLORS: ColorOption[] = COLOR_PALETTE.map((c) => ({
   id: c.name,
   name: c.name,
+  nameTr: c.nameTr,
   hex: c.hex,
 }));
 
@@ -438,13 +439,18 @@ export default function AddItemScreen() {
     setWheelVisible(false);
   }, [wheelHex, editingColorId]);
 
+  // Preset renkler için elle atanmış nameTr'a güven (hexToColorName algoritması
+  // saf olmayan preset tonlarında yanlış tahmin edebiliyor); custom renklerde
+  // (id "custom:" ile başlar) hexToColorName tek isim kaynağı olmaya devam eder.
   const colorLabel = useMemo(() => {
-    if (selectedColors.length <= 1) return hexToColorName(primaryColor.hex);
+    const labelFor = (c: ColorOption) =>
+      c.id.startsWith("custom:") ? hexToColorName(c.hex) : (c.nameTr ?? c.name);
+    if (selectedColors.length <= 1) return labelFor(primaryColor);
     if (selectedColors.length === 2 && secondaryColor) {
-      return `${hexToColorName(primaryColor.hex)} + ${hexToColorName(secondaryColor.hex)}`;
+      return `${labelFor(primaryColor)} + ${labelFor(secondaryColor)}`;
     }
     return "Çok Renkli";
-  }, [primaryColor.hex, secondaryColor?.hex, selectedColors.length]);
+  }, [primaryColor, secondaryColor, selectedColors.length]);
 
   const handleSave = async () => {
     if (!name.trim()) {
@@ -673,7 +679,7 @@ export default function AddItemScreen() {
                     )}
                   </View>
                   <Text style={[styles.colorLabel, { color: isSelected ? C.tint : C.textTertiary }]}>
-                    {hexToColorName(color.hex)}
+                    {isCustom ? hexToColorName(color.hex) : (color.nameTr ?? color.name)}
                   </Text>
                 </Pressable>
               );

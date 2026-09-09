@@ -35,8 +35,8 @@ const seasonEmoji: Record<Season, string> = {
   spring: "🌸", summer: "☀️", fall: "🍂", winter: "❄️",
 };
 
-type ColorOption = { id: string; name: string; hex: string };
-const BASE_COLORS: ColorOption[] = COLOR_PALETTE.map((c) => ({ id: c.name, name: c.name, hex: c.hex }));
+type ColorOption = { id: string; name: string; nameTr?: string; hex: string };
+const BASE_COLORS: ColorOption[] = COLOR_PALETTE.map((c) => ({ id: c.name, name: c.name, nameTr: c.nameTr, hex: c.hex }));
 const RAINBOW_GRADIENT = [
   "#FF3B30", "#FF9500", "#FFCC00", "#34C759", "#0A84FF", "#5E5CE6", "#BF5AF2", "#FF3B30",
 ] as const;
@@ -133,13 +133,18 @@ function EditSheet({
   const primaryColor = selectedColors[0] ?? BASE_COLORS[0];
   const secondaryColor = selectedColors[1];
   const isRainbow = selectedColors.length >= 3;
+  // Preset renkler için elle atanmış nameTr'a güven (hexToColorName algoritması
+  // saf olmayan preset tonlarında yanlış tahmin edebiliyor); custom renklerde
+  // (id "custom:" ile başlar) hexToColorName tek isim kaynağı olmaya devam eder.
   const colorLabel = useMemo(() => {
-    if (selectedColors.length <= 1) return hexToColorName(primaryColor.hex);
+    const labelFor = (c: ColorOption) =>
+      c.id.startsWith("custom:") ? hexToColorName(c.hex) : (c.nameTr ?? c.name);
+    if (selectedColors.length <= 1) return labelFor(primaryColor);
     if (selectedColors.length === 2 && secondaryColor) {
-      return `${hexToColorName(primaryColor.hex)} + ${hexToColorName(secondaryColor.hex)}`;
+      return `${labelFor(primaryColor)} + ${labelFor(secondaryColor)}`;
     }
     return "Çok Renkli";
-  }, [primaryColor.hex, secondaryColor?.hex, selectedColors.length]);
+  }, [primaryColor, secondaryColor, selectedColors.length]);
 
   const handleWheelColorChange = useCallback((hex: string) => {
     const normalized = hex.startsWith("#") ? hex.toUpperCase() : `#${hex.toUpperCase()}`;
@@ -264,7 +269,7 @@ function EditSheet({
                           <Feather name="check" size={12} color={["White", "Cream", "Yellow"].includes(color.name) ? "#1A1A1A" : "#FFF"} />
                         )}
                       </View>
-                      <Text style={[styles.colorLabel, { color: isSelected ? C.tint : C.textTertiary }]}>{hexToColorName(color.hex)}</Text>
+                      <Text style={[styles.colorLabel, { color: isSelected ? C.tint : C.textTertiary }]}>{isCustom ? hexToColorName(color.hex) : (color.nameTr ?? color.name)}</Text>
                     </Pressable>
                   );
                 })}
