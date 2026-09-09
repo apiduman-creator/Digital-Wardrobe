@@ -517,6 +517,7 @@ export default function AddItemScreen() {
         <ColorSelector
           key={colorSelectorKey}
           required
+          size="compact"
           initialHex={initialColorHex}
           onChange={setColorResult}
         />
