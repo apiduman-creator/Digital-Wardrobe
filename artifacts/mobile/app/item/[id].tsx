@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useMemo, useRef } from "react";
+import React, { useState, useCallback } from "react";
 import {
   View,
   Text,
@@ -14,13 +14,11 @@ import { Feather } from "@expo/vector-icons";
 import { router, useLocalSearchParams } from "expo-router";
 import * as Haptics from "expo-haptics";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import Colors, { CATEGORIES, OCCASIONS, COLOR_PALETTE } from "@/constants/colors";
+import Colors, { CATEGORIES, OCCASIONS } from "@/constants/colors";
 import { useCloset, Category, Season, Occasion } from "@/context/ClosetContext";
 import { useCalendar } from "@/context/CalendarContext";
 import { getColorContrastText, SEASON_LABELS } from "@/utils/outfitLogic";
-import { hexToColorName } from "@/utils/colorName";
-import { LinearGradient } from "expo-linear-gradient";
-import WheelColorPicker from "react-native-wheel-color-picker";
+import { ColorSelector, ColorSelectorResult } from "@/components/ColorSelector";
 
 const ITEM_SEASONS: Season[] = ["spring", "summer", "fall", "winter"];
 
@@ -34,12 +32,6 @@ const STATUS_OPTIONS: { value: ItemStatus; label: string; icon: React.ComponentP
 const seasonEmoji: Record<Season, string> = {
   spring: "🌸", summer: "☀️", fall: "🍂", winter: "❄️",
 };
-
-type ColorOption = { id: string; name: string; nameTr?: string; hex: string };
-const BASE_COLORS: ColorOption[] = COLOR_PALETTE.map((c) => ({ id: c.name, name: c.name, nameTr: c.nameTr, hex: c.hex }));
-const RAINBOW_GRADIENT = [
-  "#FF3B30", "#FF9500", "#FFCC00", "#34C759", "#0A84FF", "#5E5CE6", "#BF5AF2", "#FF3B30",
-] as const;
 
 // ─── Inline Delete Confirmation ───────────────────────────────────────────────
 function DeleteConfirm({
@@ -103,70 +95,7 @@ function EditSheet({
   const C = Colors.light;
   const [name, setName] = useState(item.name);
   const [category, setCategory] = useState<Category>(item.category);
-
-  // ── Color system (identical to add-item.tsx) ──────────────────────────────
-  // Initialize: match colorHex against base palette; fall back to custom entry
-  const [selectedColorIds, setSelectedColorIds] = useState<string[]>(() => {
-    const hex = (item.colorHex || "#1A1A1A").toUpperCase();
-    const base = BASE_COLORS.find((c) => c.hex.toUpperCase() === hex);
-    return base ? [base.id] : [`custom:${hex}`];
-  });
-  const [customColors, setCustomColors] = useState<ColorOption[]>(() => {
-    const hex = (item.colorHex || "#1A1A1A").toUpperCase();
-    const base = BASE_COLORS.find((c) => c.hex.toUpperCase() === hex);
-    if (base) return [];
-    // hexToColorName ile hesapla — item.color "Çok Renkli" gibi bir değer olabilir
-    return [{ id: `custom:${hex}`, name: hexToColorName(hex), hex }];
-  });
-  const [wheelVisible, setWheelVisible] = useState(false);
-  const [wheelHex, setWheelHex] = useState("#E74C3C");
-  const wheelInitialColorRef = useRef("#E74C3C");
-  const [wheelPickerKey, setWheelPickerKey] = useState(0);
-  const [editingColorId, setEditingColorId] = useState<string | null>(null);
-  const [colorMenuColorId, setColorMenuColorId] = useState<string | null>(null);
-
-  const availableColors = useMemo(() => [...BASE_COLORS, ...customColors], [customColors]);
-  const selectedColors = useMemo(
-    () => availableColors.filter((c) => selectedColorIds.includes(c.id)),
-    [availableColors, selectedColorIds]
-  );
-  const primaryColor = selectedColors[0] ?? BASE_COLORS[0];
-  const secondaryColor = selectedColors[1];
-  const isRainbow = selectedColors.length >= 3;
-  // Preset renkler için elle atanmış nameTr'a güven (hexToColorName algoritması
-  // saf olmayan preset tonlarında yanlış tahmin edebiliyor); custom renklerde
-  // (id "custom:" ile başlar) hexToColorName tek isim kaynağı olmaya devam eder.
-  const colorLabel = useMemo(() => {
-    const labelFor = (c: ColorOption) =>
-      c.id.startsWith("custom:") ? hexToColorName(c.hex) : (c.nameTr ?? c.name);
-    if (selectedColors.length <= 1) return labelFor(primaryColor);
-    if (selectedColors.length === 2 && secondaryColor) {
-      return `${labelFor(primaryColor)} + ${labelFor(secondaryColor)}`;
-    }
-    return "Çok Renkli";
-  }, [primaryColor, secondaryColor, selectedColors.length]);
-
-  const handleWheelColorChange = useCallback((hex: string) => {
-    const normalized = hex.startsWith("#") ? hex.toUpperCase() : `#${hex.toUpperCase()}`;
-    setWheelHex(normalized);
-  }, []);
-
-  const handleConfirmCustomColor = useCallback(() => {
-    const normalized = wheelHex.startsWith("#") ? wheelHex.toUpperCase() : `#${wheelHex.toUpperCase()}`;
-    const humanName = hexToColorName(normalized);
-    if (editingColorId) {
-      const newId = `custom:${normalized}`;
-      setCustomColors((prev) => prev.map((c) => c.id === editingColorId ? { id: newId, name: humanName, hex: normalized } : c));
-      setSelectedColorIds((prev) => prev.map((id) => id === editingColorId ? newId : id));
-    } else {
-      const customId = `custom:${normalized}`;
-      setCustomColors((prev) => prev.some((c) => c.id === customId) ? prev : [...prev, { id: customId, name: humanName, hex: normalized }]);
-      setSelectedColorIds((prev) => prev.includes(customId) ? prev : [...prev, customId]);
-    }
-    setEditingColorId(null);
-    setWheelVisible(false);
-  }, [wheelHex, editingColorId]);
-  // ─────────────────────────────────────────────────────────────────────────
+  const [colorResult, setColorResult] = useState<ColorSelectorResult | null>(null);
 
   const [seasons, setSeasons] = useState<Season[]>(item.seasons ?? []);
   const [occasions, setOccasions] = useState<Occasion[]>(() => {
@@ -226,70 +155,11 @@ function EditSheet({
               </View>
             </View>
 
-            <View style={styles.editField}>
-              <Text style={[styles.editLabel, { color: C.textSecondary }]}>Renk</Text>
-              {/* Preview */}
-              <View style={styles.selectedColorPreviewRow}>
-                {isRainbow ? (
-                  <LinearGradient colors={RAINBOW_GRADIENT} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.selectedColorDotRainbow} />
-                ) : (
-                  <View style={[styles.selectedColorDot, {
-                    backgroundColor: selectedColors.length === 0 ? "#E0E0E0" : primaryColor.hex,
-                    borderColor: selectedColors.length === 2 && secondaryColor ? secondaryColor.hex : "transparent",
-                    borderWidth: selectedColors.length === 2 ? 3 : 0,
-                  }]} />
-                )}
-                <Text style={[styles.selectedColorLabel, { color: C.textSecondary }]}>{colorLabel}</Text>
-              </View>
-              {/* Grid */}
-              <View style={styles.colorGrid}>
-                {availableColors.map((color) => {
-                  const isSelected = selectedColorIds.includes(color.id);
-                  const isCustom = color.id.startsWith("custom:");
-                  return (
-                    <Pressable
-                      key={color.id}
-                      onPress={() => setSelectedColorIds((prev) =>
-                        prev.includes(color.id) ? prev.filter((n) => n !== color.id) : [...prev, color.id]
-                      )}
-                      onLongPress={isCustom ? () => {
-                        if (Platform.OS !== "web") Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-                        setColorMenuColorId(color.id);
-                      } : undefined}
-                      delayLongPress={400}
-                      style={styles.colorItem}
-                    >
-                      <View style={[
-                        styles.colorDot,
-                        { backgroundColor: color.hex },
-                        ["White", "Cream"].includes(color.name) ? { borderWidth: 1, borderColor: "#E0DAD2" } : {},
-                        isSelected ? { borderWidth: 3, borderColor: C.tint } : {},
-                      ]}>
-                        {isSelected && (
-                          <Feather name="check" size={12} color={["White", "Cream", "Yellow"].includes(color.name) ? "#1A1A1A" : "#FFF"} />
-                        )}
-                      </View>
-                      <Text style={[styles.colorLabel, { color: isSelected ? C.tint : C.textTertiary }]}>{isCustom ? hexToColorName(color.hex) : (color.nameTr ?? color.name)}</Text>
-                    </Pressable>
-                  );
-                })}
-                {/* Custom color + button */}
-                <Pressable
-                  onPress={() => {
-                    const initial = "#E74C3C";
-                    wheelInitialColorRef.current = initial;
-                    setWheelHex(initial);
-                    setWheelPickerKey((k) => k + 1);
-                    setWheelVisible(true);
-                  }}
-                  style={[styles.colorItem, styles.plusColorItem]}
-                >
-                  <View style={[styles.colorDot, styles.plusColorDot, { borderColor: C.tint }]}>
-                    <Feather name="plus" size={18} color={C.tint} />
-                  </View>
-                </Pressable>
-              </View>
-            </View>
+            <ColorSelector
+              size="compact"
+              initialHex={item.colorHex}
+              onChange={setColorResult}
+            />
 
             <View style={styles.editField}>
               <Text style={[styles.editLabel, { color: C.textSecondary }]}>Mevsim (çoklu)</Text>
@@ -333,7 +203,7 @@ function EditSheet({
           </ScrollView>
 
           <View style={[styles.editFooter, { borderTopColor: C.separator }]}>
-            <Pressable onPress={() => { if (!canSave) return; onSave({ name: name.trim(), category, color: colorLabel, colorHex: primaryColor.hex, seasons, occasion: JSON.stringify(occasions), brand: brand.trim() || undefined, notes: notes.trim() || undefined }); }}
+            <Pressable onPress={() => { if (!canSave) return; onSave({ name: name.trim(), category, color: colorResult?.colorLabel ?? item.color, colorHex: colorResult?.colorHex ?? item.colorHex, seasons, occasion: JSON.stringify(occasions), brand: brand.trim() || undefined, notes: notes.trim() || undefined }); }}
               disabled={!canSave}
               style={[styles.saveBtn, { backgroundColor: canSave ? C.tint : C.chip }]}>
               <Feather name="check" size={18} color={canSave ? "#FFF" : C.textTertiary} />
@@ -343,73 +213,6 @@ function EditSheet({
         </View>
       </View>
 
-      {/* Wheel color picker — ana Modal'ın içinde olmalı, yoksa iOS'ta görünmez */}
-      {wheelVisible && (
-        <Modal transparent animationType="slide" visible onRequestClose={() => { setEditingColorId(null); setWheelVisible(false); }}>
-          <View style={styles.wheelModalOverlay}>
-            <View style={[styles.wheelModal, { backgroundColor: C.backgroundSecondary }]}>
-              <View style={styles.wheelHeader}>
-                <View style={styles.wheelTitleRow}>
-                  <View style={[styles.wheelPreviewDot, { backgroundColor: wheelHex }]} />
-                  <Text style={[styles.wheelTitle, { color: C.text }]}>{editingColorId ? "Rengi Değiştir" : "Özel Renk"}</Text>
-                </View>
-                <Pressable onPress={() => { setEditingColorId(null); setWheelVisible(false); }} style={[styles.wheelCloseBtn, { backgroundColor: C.chip }]} hitSlop={10}>
-                  <Feather name="x" size={18} color={C.textSecondary} />
-                </Pressable>
-              </View>
-              <View style={styles.wheelBody}>
-                <WheelColorPicker
-                  key={wheelPickerKey}
-                  color={wheelInitialColorRef.current}
-                  onColorChange={handleWheelColorChange}
-                  onColorChangeComplete={handleWheelColorChange}
-                  thumbSize={38}
-                  sliderSize={20}
-                />
-              </View>
-              <Pressable onPress={handleConfirmCustomColor} style={[styles.wheelConfirmBtn, { backgroundColor: C.tint }]}>
-                <Feather name="check" size={18} color="#FFF" />
-                <Text style={styles.wheelConfirmText}>{editingColorId ? "Güncelle" : "Rengi Ekle"}</Text>
-              </Pressable>
-            </View>
-          </View>
-        </Modal>
-      )}
-
-      {/* Action sheet — ana Modal'ın içinde olmalı */}
-      {colorMenuColorId && (
-        <Modal transparent animationType="slide" visible onRequestClose={() => setColorMenuColorId(null)}>
-          <Pressable style={styles.actionSheetOverlay} onPress={() => setColorMenuColorId(null)}>
-            <View style={[styles.actionSheet, { backgroundColor: C.backgroundSecondary }]}>
-              <View style={[styles.actionSheetHandle, { backgroundColor: C.separator }]} />
-              <Pressable style={styles.actionSheetItem} onPress={() => {
-                const color = customColors.find((c) => c.id === colorMenuColorId);
-                if (color) {
-                  wheelInitialColorRef.current = color.hex;
-                  setWheelHex(color.hex);
-                  setWheelPickerKey((k) => k + 1);
-                  setEditingColorId(colorMenuColorId);
-                  setWheelVisible(true);
-                }
-                setColorMenuColorId(null);
-              }}>
-                <Feather name="edit-2" size={20} color={C.text} />
-                <Text style={[styles.actionSheetItemText, { color: C.text }]}>Rengi Değiştir</Text>
-              </Pressable>
-              <View style={[styles.actionSheetDivider, { backgroundColor: C.separator }]} />
-              <Pressable style={styles.actionSheetItem} onPress={() => {
-                if (Platform.OS !== "web") Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
-                setCustomColors((prev) => prev.filter((c) => c.id !== colorMenuColorId));
-                setSelectedColorIds((prev) => prev.filter((id) => id !== colorMenuColorId));
-                setColorMenuColorId(null);
-              }}>
-                <Feather name="trash-2" size={20} color={C.destructive} />
-                <Text style={[styles.actionSheetItemText, { color: C.destructive }]}>Sil</Text>
-              </Pressable>
-            </View>
-          </Pressable>
-        </Modal>
-      )}
     </Modal>
   );
 }
@@ -757,34 +560,6 @@ const styles = StyleSheet.create({
   chipText: { fontSize: 12, textTransform: "capitalize", fontFamily: "Inter_500Medium" },
   seasonChip: { flexDirection: "row", alignItems: "center", paddingHorizontal: 12, paddingVertical: 8, borderRadius: 20, gap: 5 },
   seasonEmoji: { fontSize: 14 },
-  colorGrid: { flexDirection: "row", flexWrap: "wrap", gap: 10 },
-  colorItem: { alignItems: "center", gap: 4, width: 44 },
-  colorDot: { width: 36, height: 36, borderRadius: 18, alignItems: "center", justifyContent: "center" },
-  colorLabel: { fontSize: 8, fontFamily: "Inter_400Regular", textAlign: "center" },
-  selectedColorPreviewRow: { flexDirection: "row", alignItems: "center", gap: 10, marginBottom: 8 },
-  selectedColorDot: { width: 24, height: 24, borderRadius: 12 },
-  selectedColorDotRainbow: { width: 24, height: 24, borderRadius: 12 },
-  selectedColorLabel: { fontSize: 13, fontFamily: "Inter_500Medium" },
-  plusColorItem: { marginLeft: 2 },
-  plusColorDot: { borderWidth: 2, borderRadius: 20, width: 36, height: 36, alignItems: "center", justifyContent: "center", backgroundColor: "transparent" },
-  // Wheel modal
-  wheelModalOverlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.35)", justifyContent: "flex-end" },
-  wheelModal: { padding: 16, borderTopLeftRadius: 20, borderTopRightRadius: 20, minHeight: 420, gap: 12 },
-  wheelHeader: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingVertical: 4 },
-  wheelTitleRow: { flexDirection: "row", alignItems: "center", gap: 10 },
-  wheelPreviewDot: { width: 24, height: 24, borderRadius: 12, borderWidth: 1, borderColor: "rgba(0,0,0,0.08)" },
-  wheelTitle: { fontSize: 14, fontFamily: "Inter_600SemiBold" },
-  wheelCloseBtn: { width: 38, height: 38, borderRadius: 19, alignItems: "center", justifyContent: "center" },
-  wheelBody: { flex: 1, alignItems: "center", justifyContent: "center" },
-  wheelConfirmBtn: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, paddingVertical: 14, borderRadius: 14, marginTop: 4 },
-  wheelConfirmText: { color: "#FFF", fontSize: 15, fontFamily: "Inter_600SemiBold" },
-  // Action sheet
-  actionSheetOverlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.35)", justifyContent: "flex-end" },
-  actionSheet: { borderTopLeftRadius: 20, borderTopRightRadius: 20, paddingBottom: Platform.OS === "ios" ? 36 : 20, paddingHorizontal: 16, paddingTop: 12 },
-  actionSheetHandle: { width: 36, height: 4, borderRadius: 2, alignSelf: "center", marginBottom: 16 },
-  actionSheetItem: { flexDirection: "row", alignItems: "center", gap: 14, paddingVertical: 16, paddingHorizontal: 4 },
-  actionSheetItemText: { fontSize: 16, fontFamily: "Inter_500Medium" },
-  actionSheetDivider: { height: 1 },
   editFooter: { borderTopWidth: 1, paddingTop: 16 },
   saveBtn: { flexDirection: "row", alignItems: "center", justifyContent: "center", paddingVertical: 16, borderRadius: 14, gap: 8 },
   saveBtnText: { fontSize: 16, fontFamily: "Inter_600SemiBold" },
