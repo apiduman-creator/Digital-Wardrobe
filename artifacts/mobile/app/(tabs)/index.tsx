@@ -117,6 +117,9 @@ export default function ClosetScreen() {
             {filtered.length} parça{readyOnly ? "  ·  Giymeye hazır" : ""}
           </Text>
         </View>
+        <Pressable onPress={() => router.push("/settings")} style={styles.settingsBtn} hitSlop={8}>
+          <Feather name="settings" size={19} color={P.inkMid} />
+        </Pressable>
         <Pressable onPress={() => router.push("/add-item")} style={styles.addBtn}>
           <Feather name="plus" size={20} color={P.white} />
         </Pressable>
@@ -459,6 +462,17 @@ const styles = StyleSheet.create({
     gap: 10,
     zIndex: 2,
     overflow: "visible",
+  },
+  settingsBtn: {
+    width: 42,
+    height: 42,
+    borderRadius: 21,
+    marginRight: 10,
+    borderWidth: 1.5,
+    borderColor: P.border,
+    backgroundColor: P.cardBg,
+    alignItems: "center",
+    justifyContent: "center",
   },
   addBtn: {
     width: 42,
