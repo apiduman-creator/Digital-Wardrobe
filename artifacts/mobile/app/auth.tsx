@@ -52,7 +52,9 @@ function toGenericMessage(mode: Mode, raw: string): string {
   if (looksLikeNetworkIssue) return "Bağlantı hatası, tekrar dene.";
   if (mode === "register" && raw.includes("zaten kayıtlı")) return "Bu e-posta zaten kayıtlı.";
   if (mode === "login") return "E-posta veya şifre hatalı.";
-  return "Bağlantı hatası, tekrar dene.";
+  return mode === "register"
+    ? "Kayıt olurken bir sorun oluştu, bilgileri kontrol edip tekrar dene."
+    : "Bağlantı hatası, tekrar dene.";
 }
 
 export default function AuthScreen() {
