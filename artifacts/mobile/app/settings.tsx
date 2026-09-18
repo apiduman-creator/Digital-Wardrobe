@@ -3,6 +3,7 @@ import { View, Text, Pressable, StyleSheet, Platform } from "react-native";
 import { Feather } from "@expo/vector-icons";
 import { router, Stack } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useAuth } from "@/context/AuthContext";
 
 // ─── Palette — Atelier Couture (bkz. app/(tabs)/index.tsx) ────────────────────
 const P = {
@@ -10,15 +11,21 @@ const P = {
   ink:         "#2C1A0E",
   inkMid:      "#7B5A45",
   inkLight:    "#A88B75",
+  accent:      "#C84B4B",
   accentGold:  "#C9A96E",
   cardBg:      "#FFFDF7",
   border:      "#DDD0BC",
   borderLight: "#EDE3D5",
+  white:       "#FFFFFF",
 };
 
 export default function SettingsScreen() {
   const insets = useSafeAreaInsets();
   const topPad = Platform.OS === "web" ? 20 : insets.top;
+  // AuthContext token'ı saklıyor ama kullanıcı email'ini tutmuyor
+  // (bkz. context/AuthContext.tsx — AuthContextType'ta email alanı yok),
+  // bu yüzden burada gösterilecek bir email'imiz yok.
+  const { isAuthenticated, logout } = useAuth();
 
   return (
     <>
@@ -35,7 +42,21 @@ export default function SettingsScreen() {
         <View style={styles.section}>
           <Text style={styles.sectionLabel}>HESAP</Text>
           <View style={styles.card}>
-            <Text style={styles.cardText}>Giriş yapılmadı</Text>
+            {isAuthenticated ? (
+              <>
+                <Text style={styles.cardText}>Giriş yapıldı</Text>
+                <Pressable onPress={logout} style={styles.secondaryBtn}>
+                  <Text style={styles.secondaryBtnText}>Çıkış Yap</Text>
+                </Pressable>
+              </>
+            ) : (
+              <>
+                <Text style={styles.cardText}>Giriş yapılmadı</Text>
+                <Pressable onPress={() => router.push("/auth")} style={styles.primaryBtn}>
+                  <Text style={styles.primaryBtnText}>Giriş Yap / Kayıt Ol</Text>
+                </Pressable>
+              </>
+            )}
           </View>
         </View>
       </View>
@@ -97,10 +118,36 @@ const styles = StyleSheet.create({
     backgroundColor: P.cardBg,
     paddingHorizontal: 16,
     paddingVertical: 16,
+    gap: 12,
   },
   cardText: {
     fontSize: 14,
     fontFamily: "Inter_400Regular",
+    color: P.inkMid,
+  },
+  primaryBtn: {
+    borderRadius: 12,
+    backgroundColor: P.accent,
+    paddingVertical: 12,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  primaryBtnText: {
+    fontSize: 14,
+    fontFamily: "Inter_600SemiBold",
+    color: P.white,
+  },
+  secondaryBtn: {
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: P.border,
+    paddingVertical: 12,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  secondaryBtnText: {
+    fontSize: 14,
+    fontFamily: "Inter_600SemiBold",
     color: P.inkMid,
   },
 });
