@@ -15,6 +15,7 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import Colors from "@/constants/colors";
+import { useAuth } from "@/context/AuthContext";
 
 const { width: SW } = Dimensions.get("window");
 const C = Colors.light;
@@ -24,8 +25,9 @@ const C = Colors.light;
 type WelcomeStep = { type: "welcome" };
 type QuestionStep = { type: "question"; question: string; options: string[] };
 type AiConsentStep = { type: "ai_consent" };
+type AccountInviteStep = { type: "account_invite" };
 type CompleteStep = { type: "complete" };
-type OnboardingStep = WelcomeStep | QuestionStep | AiConsentStep | CompleteStep;
+type OnboardingStep = WelcomeStep | QuestionStep | AiConsentStep | AccountInviteStep | CompleteStep;
 
 const STEPS: OnboardingStep[] = [
   { type: "welcome" },
@@ -60,6 +62,7 @@ const STEPS: OnboardingStep[] = [
     options: ["20'den az", "20–50 arası", "50–100 arası", "100'den fazla"],
   },
   { type: "ai_consent" },
+  { type: "account_invite" },
   { type: "complete" },
 ];
 
@@ -89,6 +92,7 @@ export default function OnboardingScreen() {
   const [currentStep, setCurrentStep] = useState(0);
   const [selectedOption, setSelectedOption] = useState<number | null>(null);
   const [consentChecked, setConsentChecked] = useState(false);
+  const { isAuthenticated } = useAuth();
 
   const slideAnim = useRef(new Animated.Value(0)).current;
   const fadeAnim = useRef(new Animated.Value(1)).current;
@@ -160,6 +164,15 @@ export default function OnboardingScreen() {
 
   const step = STEPS[currentStep];
   const questionIndex = currentStep - 1; // 0-based index among question steps
+
+  // Kullanıcı "Hesap Oluştur"a basıp /auth'tan router.back() ile buraya
+  // döndüğünde ve kayıt/giriş başarılıysa, ikinci bir buton basmasına
+  // gerek kalmadan otomatik olarak sonraki adıma geç.
+  useEffect(() => {
+    if (step.type === "account_invite" && isAuthenticated) {
+      goNext();
+    }
+  }, [step.type, isAuthenticated, goNext]);
 
   return (
     <View
@@ -290,6 +303,36 @@ export default function OnboardingScreen() {
             >
               <Text style={styles.primaryButtonText}>Devam Et</Text>
               <Feather name="arrow-right" size={18} color="#fff" style={{ marginLeft: 8 }} />
+            </Pressable>
+          </View>
+        )}
+
+        {/* ── Account Invite ──────────────────────────────────────────────── */}
+        {step.type === "account_invite" && (
+          <View style={styles.centerContent}>
+            <Image
+              source={require("@/assets/images/mascot/basic.png")}
+              style={styles.mascotImage}
+              resizeMode="contain"
+            />
+
+            <Text style={styles.welcomeTitle}>Kıyafetlerini güvende tut</Text>
+            <Text style={styles.welcomeBody}>
+              Bir hesap oluşturursan dolabın buluta yedeklenir ve telefon
+              değiştirsen bile kaybolmaz. İstersen şimdi atlayıp daha sonra
+              Ayarlar&apos;dan da oluşturabilirsin.
+            </Text>
+
+            <Pressable
+              style={({ pressed }) => [styles.primaryButton, pressed && styles.primaryButtonPressed]}
+              onPress={() => router.push("/auth")}
+            >
+              <Text style={styles.primaryButtonText}>Hesap Oluştur</Text>
+              <Feather name="arrow-right" size={18} color="#fff" style={{ marginLeft: 8 }} />
+            </Pressable>
+
+            <Pressable onPress={goNext} hitSlop={8} style={styles.skipLink}>
+              <Text style={styles.skipLinkText}>Şimdi değil, sonra Ayarlar&apos;dan</Text>
             </Pressable>
           </View>
         )}
@@ -473,6 +516,18 @@ const styles = StyleSheet.create({
   },
   primaryButtonDisabled: {
     opacity: 0.4,
+  },
+
+  // ── Account Invite ────────────────────────────────────────────────────────
+  skipLink: {
+    marginTop: 18,
+    paddingVertical: 6,
+  },
+  skipLinkText: {
+    fontFamily: "Inter_500Medium",
+    fontSize: 14,
+    color: C.textSecondary,
+    textAlign: "center",
   },
 
   // ── Question ──────────────────────────────────────────────────────────────
