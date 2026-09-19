@@ -30,13 +30,17 @@
 
 ## 🟡 Yarım Kalan Altyapı
 
-- [ ] **Backend auth + veri taşıma** (ikisi birlikte yapılmalı, tek başına auth'un faydası yok) ~3-4 sa
-  - Mobile'a kayıt/giriş ekranı
-  - Token AsyncStorage'da saklanacak
-  - Her API isteğine `Authorization: Bearer` eklenecek
-  - Token expire yenileme mekanizması
-  - Closet/outfit verileri AsyncStorage'dan backend'e taşınacak
-  - `routes/index.ts` içinde `/closet` ve `/outfits` üzerine `authMiddleware` **geri eklenecek**
+- [ ] **Backend auth + veri taşıma** (ikisi birlikte yapılmalı, tek başına auth'un faydası yok)
+  - [x] Backend auth uçları (`/register`, `/login`) doğrulandı — Render production'da JWT dönüyor
+  - [x] Mobile'da token kalıcılığı + merkezi auth context (`AuthContext.tsx`, `authFetch()` helper'ı hazır)
+  - [x] Kalıcı kayıt/giriş ekranı (`app/auth.tsx`) + Ayarlar entegrasyonu — Build 27'de test edildi, sorunsuz (commit d309d64, 70e2e02)
+  - [ ] Onboarding'e atlanabilir hesap daveti eklenecek
+  - [ ] Şifremi unuttum — Resend (email servisi) + doğrulanmış özel domain kurulana kadar ertelendi; kurulunca kod-tabanlı (deep link değil) sıfırlama eklenecek
+  - [ ] `/closet` ve `/outfits` isteklerinde ham `fetch` yerine `authFetch` kullanımına geçiş
+  - [ ] Dual-write stratejisi (geçiş dönemi için hem AsyncStorage hem backend'e yazma)
+  - [ ] Tek seferlik migration — mevcut AsyncStorage verisi ilk login'de backend'e taşınacak
+  - [ ] `routes/index.ts` içinde `/closet` ve `/outfits` üzerine `authMiddleware` **geri eklenecek**
+- [ ] **Ayarlar → Hesap bölümü çok yalın** — giriş yapınca sadece "Giriş yapıldı" + "Çıkış Yap" görünüyor, gerçek kullanıcı bilgisi yok. `AuthContext` email'i hiç tutmuyor. Onboarding'de kullanıcı bilgisi toplanmaya başlayınca zenginleştirilecek. App Store yayınından SONRA, cilalama sprintinde.
 - [ ] **Kombinler sayfası görsel iyileştirme** — kartlar hâlâ sade, görsel yok. ~1 sa
 - [ ] **Takvim güçlendirmesi** — giyilen kıyafetin rengi/fotoğrafı takvimde görünsün. ~1-2 sa
 
