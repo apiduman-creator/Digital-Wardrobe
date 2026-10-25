@@ -15,6 +15,7 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import Colors from "@/constants/colors";
+import { ACCOUNTS_ENABLED } from "@/constants/features";
 import { useAuth } from "@/context/AuthContext";
 
 const { width: SW } = Dimensions.get("window");
@@ -62,7 +63,8 @@ const STEPS: OnboardingStep[] = [
     options: ["20'den az", "20–50 arası", "50–100 arası", "100'den fazla"],
   },
   { type: "ai_consent" },
-  { type: "account_invite" },
+  // v1.0'da hesap kapalı (bkz. constants/features.ts) — bu adım listeye hiç girmiyor
+  ...(ACCOUNTS_ENABLED ? [{ type: "account_invite" } as AccountInviteStep] : []),
   { type: "complete" },
 ];
 

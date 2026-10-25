@@ -2,8 +2,15 @@ import React from "react";
 import { View, Text, Pressable, StyleSheet, Platform } from "react-native";
 import { Feather } from "@expo/vector-icons";
 import { router, Stack } from "expo-router";
+import * as WebBrowser from "expo-web-browser";
+import Constants from "expo-constants";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useAuth } from "@/context/AuthContext";
+import { ACCOUNTS_ENABLED } from "@/constants/features";
+
+// Apple 5.1.1(i): gizlilik politikası uygulama içinden kolayca erişilebilir olmalı.
+const PRIVACY_POLICY_URL = "https://apiduman-creator.github.io/Digital-Wardrobe/";
+const APP_VERSION = Constants.expoConfig?.version ?? "";
 
 // ─── Palette — Atelier Couture (bkz. app/(tabs)/index.tsx) ────────────────────
 const P = {
@@ -39,24 +46,45 @@ export default function SettingsScreen() {
           <View style={styles.headerSpacer} />
         </View>
 
+        {/* v1.0'da hesap kapalı (bkz. constants/features.ts) */}
+        {ACCOUNTS_ENABLED && (
+          <View style={styles.section}>
+            <Text style={styles.sectionLabel}>HESAP</Text>
+            <View style={styles.card}>
+              {isAuthenticated ? (
+                <>
+                  <Text style={styles.cardText}>Giriş yapıldı</Text>
+                  <Pressable onPress={logout} style={styles.secondaryBtn}>
+                    <Text style={styles.secondaryBtnText}>Çıkış Yap</Text>
+                  </Pressable>
+                </>
+              ) : (
+                <>
+                  <Text style={styles.cardText}>Giriş yapılmadı</Text>
+                  <Pressable onPress={() => router.push("/auth")} style={styles.primaryBtn}>
+                    <Text style={styles.primaryBtnText}>Giriş Yap / Kayıt Ol</Text>
+                  </Pressable>
+                </>
+              )}
+            </View>
+          </View>
+        )}
+
         <View style={styles.section}>
-          <Text style={styles.sectionLabel}>HESAP</Text>
-          <View style={styles.card}>
-            {isAuthenticated ? (
-              <>
-                <Text style={styles.cardText}>Giriş yapıldı</Text>
-                <Pressable onPress={logout} style={styles.secondaryBtn}>
-                  <Text style={styles.secondaryBtnText}>Çıkış Yap</Text>
-                </Pressable>
-              </>
-            ) : (
-              <>
-                <Text style={styles.cardText}>Giriş yapılmadı</Text>
-                <Pressable onPress={() => router.push("/auth")} style={styles.primaryBtn}>
-                  <Text style={styles.primaryBtnText}>Giriş Yap / Kayıt Ol</Text>
-                </Pressable>
-              </>
-            )}
+          <Text style={styles.sectionLabel}>HAKKINDA</Text>
+          <View style={styles.listCard}>
+            <Pressable
+              onPress={() => WebBrowser.openBrowserAsync(PRIVACY_POLICY_URL)}
+              style={({ pressed }) => [styles.row, pressed && styles.rowPressed]}
+            >
+              <Text style={styles.rowText}>Gizlilik Politikası</Text>
+              <Feather name="external-link" size={16} color={P.inkLight} />
+            </Pressable>
+            <View style={styles.rowDivider} />
+            <View style={styles.row}>
+              <Text style={styles.rowText}>Sürüm</Text>
+              <Text style={styles.rowValue}>{APP_VERSION}</Text>
+            </View>
           </View>
         </View>
       </View>
@@ -149,5 +177,39 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontFamily: "Inter_600SemiBold",
     color: P.inkMid,
+  },
+
+  // ── Hakkında listesi ──────────────────────────────────────────────────────────
+  listCard: {
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: P.border,
+    backgroundColor: P.cardBg,
+    overflow: "hidden",
+  },
+  row: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+  },
+  rowPressed: {
+    backgroundColor: P.borderLight,
+  },
+  rowText: {
+    fontSize: 14,
+    fontFamily: "Inter_500Medium",
+    color: P.ink,
+  },
+  rowValue: {
+    fontSize: 14,
+    fontFamily: "Inter_400Regular",
+    color: P.inkLight,
+  },
+  rowDivider: {
+    height: 1,
+    backgroundColor: P.borderLight,
+    marginLeft: 16,
   },
 });
