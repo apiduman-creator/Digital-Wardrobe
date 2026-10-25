@@ -243,14 +243,6 @@ export default function ClosetScreen() {
 
       {StickyHeader}
 
-      {/* GEÇİCİ - Adım 2 testi için, sonra kaldırılacak */}
-      <Text
-        onPress={() => router.push("/auth-test")}
-        style={{ fontSize: 11, color: "#999", textAlign: "center", padding: 4 }}
-      >
-        [geçici: auth test]
-      </Text>
-
       <View style={styles.carouselWrapper}>
         <Animated.FlatList
           data={filtered}
@@ -289,8 +281,10 @@ export default function ClosetScreen() {
               extrapolate: "clamp",
             });
 
+            // Dört mevsimin hepsi seçiliyse "Tüm Mevsimler", değilse ilk mevsim
+            const itemSeasons = item.seasons ?? [];
             const season: string =
-              (item as any).season ?? ((item as any).seasons?.[0] ?? "");
+              itemSeasons.length >= 4 ? "all" : (itemSeasons[0] ?? "");
             const colorHex = item.colorHex || "#C9A96E";
 
             return (

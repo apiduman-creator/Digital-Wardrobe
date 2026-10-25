@@ -26,7 +26,7 @@ export function generateRandomOutfit(
     return items.filter((item) => {
       const catMatch = cats.includes(item.category);
       const seasonMatch =
-        !season || season === "all" || item.seasons.includes(season as Season);
+        !season || season === "all" || (item.seasons ?? []).includes(season as Season);
       const itemOccasions: string[] = (() => { try { const p = JSON.parse(item.occasion); return Array.isArray(p) ? p : [item.occasion]; } catch { return [item.occasion]; } })();
       const occasionMatch = !occasion || itemOccasions.includes(occasion);
       return catMatch && seasonMatch && occasionMatch;
@@ -78,4 +78,5 @@ export const SEASON_LABELS: Record<Season, string> = {
   summer: "Yaz",
   fall: "Sonbahar",
   winter: "Kış",
+  all: "Tüm Mevsimler",
 };

@@ -5,7 +5,7 @@ import Animated, { useSharedValue, useAnimatedStyle, withSpring } from "react-na
 import * as Haptics from "expo-haptics";
 import Colors from "@/constants/colors";
 import { ClosetItem } from "@/context/ClosetContext";
-import { getColorContrastText } from "@/utils/outfitLogic";
+import { getColorContrastText, SEASON_LABELS } from "@/utils/outfitLogic";
 
 interface Props {
   item: ClosetItem;
@@ -79,7 +79,7 @@ export function ClothingCard({ item, onPress, onFavoriteToggle, size = "large" }
             </Text>
             <Text style={[styles.dot, { color: C.textTertiary }]}>·</Text>
             <Text style={[styles.tag, { color: C.textTertiary }]}>
-              {(item.seasons ?? []).slice(0, 2).join(", ")}
+              {(item.seasons ?? []).slice(0, 2).map((s) => SEASON_LABELS[s] ?? s).join(", ")}
             </Text>
           </View>
         </View>

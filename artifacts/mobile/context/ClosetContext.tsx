@@ -1,5 +1,4 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode } from "react";
-import { createOutfit as apiCreateOutfit } from "@workspace/api-client-react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as FileSystem from "expo-file-system/legacy";
 
@@ -18,6 +17,12 @@ export type Category =
 
 export type Season = "spring" | "summer" | "fall" | "winter" | "all";
 
+// Kombin üretme/filtreleme ekranlarında kullanılan mevsim seçimi ("all" dahil).
+export type OutfitSeason = Season;
+
+// Bir kıyafete atanabilecek gerçek mevsimler ("all" = dördü birden).
+export const ALL_ITEM_SEASONS: Season[] = ["spring", "summer", "fall", "winter"];
+
 export type Occasion = "casual" | "work" | "formal" | "sport" | "lounge" | "special";
 
 export interface ClosetItem {
@@ -27,7 +32,7 @@ export interface ClosetItem {
   color: string;
   colorHex: string;
   brand?: string;
-  season: Season;           // single season string — matches backend text field
+  seasons: Season[];        // çoklu mevsim — ekle/düzenle ekranları ve AI analizi dizi üretiyor
   occasion: string;         // JSON stringified Occasion[] e.g. '["casual","work"]'
   imageUri?: string;        // local file:// URI stored in documentDirectory
   status?: "ready" | "dirty" | "washing" | "dry-cleaning";
@@ -76,8 +81,13 @@ function generateId(): string {
   return Date.now().toString() + Math.random().toString(36).substr(2, 9);
 }
 
-// Migrate items from old array format (seasons: Season[]) to single-string
-// format (season: Season). Ayrıca imageUri'yi HER YÜKLEMEDE güncel
+// Mevsim alanını tek doğru biçime (seasons: Season[]) normalize eder.
+// Geçmişte tip tekil `season` stringe çevrilmiş ama ekranlar `seasons`
+// dizisi yazmaya devam etmişti; eski migration her açılışta diziyi silip
+// sadece ilk mevsimi bırakıyordu (mevsim bilgisi kayboluyor, detayda "—"
+// görünüyor, kombin üretirken mevsim seçilince çöküyordu — 2026-10-25).
+// Artık: dizi varsa korunur; sadece eski tekil `season` varsa diziye çevrilir.
+// Ayrıca imageUri'yi HER YÜKLEMEDE güncel
 // documentDirectory değeriyle yeniden inşa eder — iOS, uygulama
 // güncellemeleri arasında bu klasörün adresini (container UUID)
 // değiştirebiliyor; dosyanın kendisi kaybolmuyor ama eski, donmuş yol
@@ -94,18 +104,24 @@ function fixImageUri(imageUri: string | undefined): string | undefined {
   return `${FileSystem.documentDirectory}${relativePart}`;
 }
 
-function migrateItem(raw: any): ClosetItem {
-  let item: any;
-  if (typeof raw.season === "string") {
-    item = raw;
-  } else {
-    // Old format had `seasons` as an array — pick the first entry or default to "all"
-    const arr: string[] = Array.isArray(raw.seasons) ? raw.seasons : [];
-    const season: Season = (arr.length > 0 ? arr[0] : "all") as Season;
-    const { seasons: _dropped, ...rest } = raw;
-    item = { ...rest, season };
+function normalizeSeasons(raw: any): Season[] {
+  if (Array.isArray(raw.seasons) && raw.seasons.length > 0) {
+    return raw.seasons as Season[];
   }
-  return { ...item, imageUri: fixImageUri(item.imageUri) } as ClosetItem;
+  if (typeof raw.season === "string" && raw.season !== "all") {
+    return [raw.season as Season];
+  }
+  // "all", boş ya da hiç yoksa: dört mevsim
+  return [...ALL_ITEM_SEASONS];
+}
+
+function migrateItem(raw: any): ClosetItem {
+  const { season: _legacySeason, ...rest } = raw;
+  return {
+    ...rest,
+    seasons: normalizeSeasons(raw),
+    imageUri: fixImageUri(raw.imageUri),
+  } as ClosetItem;
 }
 
 // ─── Context ──────────────────────────────────────────────────────────────────
@@ -201,37 +217,14 @@ export function ClosetProvider({ children }: { children: ReactNode }) {
   }, [items, updateItem]);
 
   // ─── Outfit Operations ──────────────────────────────────────────────────────
+  // v1.0: kombinler de kıyafetler gibi SADECE cihazda (AsyncStorage) tutulur.
+  // Önceden burada kimlik doğrulamasız bir POST /outfits çağrısı vardı — veri
+  // Render'ın kalıcı olmayan diskine, kullanıcıyla ilişkilendirilmeden
+  // yazılıyordu. Backend senkronizasyonu v1.1'de (Turso + hesap) gelecek.
   const addOutfit = useCallback(async (outfit: Omit<Outfit, "id" | "createdAt" | "updatedAt">) => {
-    try {
-      const created = await apiCreateOutfit({
-        name: outfit.name,
-        itemIds: outfit.itemIds,
-        occasion: outfit.occasion,
-        season: outfit.season,
-        notes: outfit.notes,
-        favorite: outfit.favorite,
-      });
-      if (!created || !created.id) {
-        throw new Error("API returned empty outfit response");
-      }
-      const normalized: Outfit = {
-        id: created.id,
-        name: created.name,
-        itemIds: created.itemIds,
-        occasion: created.occasion as Occasion,
-        season: created.season as Season,
-        notes: created.notes,
-        favorite: created.favorite,
-        createdAt: created.createdAt,
-        updatedAt: created.updatedAt,
-      };
-      await persistOutfits([normalized, ...outfits]);
-    } catch (e) {
-      console.error("Failed to create outfit via API, falling back to local:", e);
-      const now = new Date().toISOString();
-      const fallback: Outfit = { ...outfit, id: generateId(), createdAt: now, updatedAt: now };
-      await persistOutfits([fallback, ...outfits]);
-    }
+    const now = new Date().toISOString();
+    const created: Outfit = { ...outfit, id: generateId(), createdAt: now, updatedAt: now };
+    await persistOutfits([created, ...outfits]);
   }, [outfits]);
 
   const updateOutfit = useCallback(async (id: string, updates: Partial<Outfit>) => {
