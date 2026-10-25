@@ -197,7 +197,11 @@ export default function AddItemScreen() {
           Alert.alert("Kıyafet Bulunamadı", msg);
           return;
         }
-        throw new Error(data.error ?? `Sunucu hatası: ${res.status}`);
+        // Sunucunun kendi (Türkçe, kontrollü) mesajı varsa işaretle; yoksa
+        // aşağıdaki catch sade bir genel mesaj gösterecek.
+        throw Object.assign(new Error(data.error ?? `Sunucu hatası: ${res.status}`), {
+          fromServer: !!data.error,
+        });
       }
 
       const result = data;
@@ -239,7 +243,17 @@ export default function AddItemScreen() {
       if (err instanceof Error && err.name === "AbortError") {
         Alert.alert("Zaman Aşımı", "Analiz 60 saniyede tamamlanamadı. Lütfen tekrar deneyin.");
       } else {
-        Alert.alert("Analiz Hatası", err instanceof Error ? err.message : "Bilinmeyen bir hata oluştu.");
+        // Ağ hatası, Render'ın HTML hata sayfası (JSON parse hatası) gibi teknik,
+        // çoğu zaman İngilizce metinler kullanıcıya gösterilmez.
+        const serverMsg =
+          err instanceof Error && (err as Error & { fromServer?: boolean }).fromServer
+            ? err.message
+            : null;
+        Alert.alert(
+          "Analiz Hatası",
+          serverMsg ??
+            "Fotoğraf şu an analiz edilemedi. İnternet bağlantını kontrol edip tekrar dene ya da bilgileri elle doldur."
+        );
       }
     } finally {
       clearTimeout(timeoutId);

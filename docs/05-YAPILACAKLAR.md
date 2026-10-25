@@ -1,7 +1,7 @@
 # Yapılacaklar — Canlı Backlog
 
 > Bu dosya **her session sonunda güncellenmeli**. Projenin tek doğru durum kaynağı burasıdır.
-> Son güncelleme: 09 Eylül 2026
+> Son güncelleme: 25 Ekim 2026
 
 ---
 
@@ -10,9 +10,20 @@
 - [x] **Privacy policy** — `docs/index.html` olarak yazıldı, GitHub Pages'te yayında: `https://apiduman-creator.github.io/Digital-Wardrobe/`. Apple 5.1.1, KVKK Aydınlatma unsurları ve Anthropic/Claude API açıklaması dahil.
 - [x] **iOS kamera/galeri izin metinleri** — `app.json` → `ios.infoPlist` içine `NSCameraUsageDescription` / `NSPhotoLibraryUsageDescription` eklendi (jenerik değil, özellik bazlı metin).
 - [x] **AI açık rıza ekranı (KVKK + Apple 5.1.1 uyumu)** — Onboarding'e yeni "ai_consent" adımı eklendi (checkbox + "Devam Et"); `add-item.tsx`'e de aynı `ai_consent_given` AsyncStorage bayrağını kontrol eden bir güvenlik-ağı Alert'i eklendi (onboarding'den önce kurulu kullanıcılar için). Test edildi, çalışıyor.
-- [ ] **iOS production build** — `eas build --platform ios --profile production`. Apple Developer enrollment tamam, credentials (distribution certificate + provisioning profile) EAS'ta oluşturuldu. `ExpoAppDelegate` uyumsuzluğu commit `c46ea8d`/`acea5d0`'da çözüldü; build 21-25 (eas build:list ile doğrulandı) hepsi sorunsuz tamamlandı.
-- [ ] **TestFlight'a yükleme** — `eas submit`. (iOS build sorunu çözülmeden yapılamaz.)
-- [ ] **App Store Connect** — uygulama açıklaması, ekran görüntüleri, kategori, yaş sınırı, App Privacy formu (Photos/Videos → App Functionality → not linked → not tracking olarak işaretlenecek). Henüz başlanmadı.
+- [x] **iOS production build** — build 16→27 zinciri sorunsuz.
+- [x] **TestFlight'a yükleme** — `eas submit --platform ios --latest --non-interactive` (ascAppId eklendi, tamamen non-interaktif).
+- [x] **v1.0 kapsam kararı (25 Ekim):** Hesap özelliği v1.0'da KAPALI — `constants/features.ts` → `ACCOUNTS_ENABLED = false`. Sebep: veri backend'e taşınmıyor (hesabın faydası yok), Render diski kalıcı değil, Apple 5.1.1(v) uygulama içi hesap silme şartı. Kod silinmedi, bayrakla gizlendi; v1.1'de geri gelecek.
+- [x] **Ayarlar → "Hakkında"**: Gizlilik Politikası linki (Apple 5.1.1(i) — uygulama içinden erişilebilir olmalı) + sürüm.
+- [x] **`/analyze-clothing` ham hata sızıntısı** — backend artık detayı sadece loga yazıyor, kullanıcıya sade Türkçe mesaj; mobilde ağ/parse hataları da sade mesaja çevrildi.
+- [x] **Mevsim bug'ı (eski "17 TS hatası")** — gerçek bir bug'dı: her açılışta çoklu mevsim bilgisi siliniyor, detayda "—" görünüyor, düzenle'de Kaydet kilitleniyor, kombin üretirken mevsim seçilince çöküyordu. Tek biçim `seasons: Season[]` yapıldı.
+- [x] **Kombinler sadece cihazda** — kimlik doğrulamasız `POST /outfits` çağrısı kaldırıldı.
+- [x] **Gizlilik politikası v1.0'a göre güncellendi** — hesap/sunucu saklama ifadeleri kaldırıldı, "tüm veriler cihazda" olarak düzeltildi.
+- [x] `app.json`: `supportsTablet: false`, `ITSAppUsesNonExemptEncryption: false` — zaten doğru.
+- [ ] **Yeni build + regresyon testi** (onboarding'de hesap adımı yok, Ayarlar → Gizlilik linki açılıyor, ekle/sil/düzenle, kartela, AI analizi, kombin üretirken mevsim seçimi, uygulamayı kapatıp açınca mevsimler korunuyor mu)
+- [ ] **Anthropic Console'da aylık harcama limiti** (paywall v1.0'da yok — tek maliyet sigortası)
+- [ ] **Ekran görüntüleri** — 6.9" (1320×2868) set zorunlu; iPhone 13 mini görüntüleri bu ölçüye uymaz → simülatör ya da tasarım karelerine yerleştirme
+- [ ] **App Store Connect metadata** — isim, alt başlık, açıklama, anahtar kelimeler, destek URL'i, kategori, yaş derecelendirmesi, App Privacy formu (v1.0: hesap yok, veri cihazda; sadece AI analizi için fotoğraf geçici olarak iletiliyor, saklanmıyor)
+- [ ] **İncelemeye gönder**
 
 ## 🟠 Monetizasyon (kullanıcının yeni önceliği)
 
@@ -30,14 +41,14 @@
 
 ## 🟡 Yarım Kalan Altyapı
 
-- [ ] **Backend auth + veri taşıma** (ikisi birlikte yapılmalı, tek başına auth'un faydası yok)
+- [ ] **Backend auth + veri taşıma — v1.1** (ikisi birlikte yapılmalı, tek başına auth'un faydası yok). Sıra: Turso hesabı → backend bağlantısı Turso'ya → migrate-once (anonim kullanıcı local kalır) → `authFetch` → **uygulama içi hesap silme** (Apple 5.1.1(v) — zorunlu) → `ACCOUNTS_ENABLED = true` → gizlilik politikası + App Privacy formu güncellemesi
   - [x] Backend auth uçları (`/register`, `/login`) doğrulandı — Render production'da JWT dönüyor
   - [x] Mobile'da token kalıcılığı + merkezi auth context (`AuthContext.tsx`, `authFetch()` helper'ı hazır)
   - [x] Kalıcı kayıt/giriş ekranı (`app/auth.tsx`) + Ayarlar entegrasyonu — Build 27'de test edildi, sorunsuz (commit d309d64, 70e2e02)
-  - [ ] Onboarding'e atlanabilir hesap daveti eklenecek
+  - [x] Onboarding'e atlanabilir hesap daveti (commit cad8e68) — v1.0'da bayrakla gizli
+  - [ ] Hesap silme (backend ucu + Ayarlar'da buton + onay)
   - [ ] Şifremi unuttum — Resend (email servisi) + doğrulanmış özel domain kurulana kadar ertelendi; kurulunca kod-tabanlı (deep link değil) sıfırlama eklenecek
   - [ ] `/closet` ve `/outfits` isteklerinde ham `fetch` yerine `authFetch` kullanımına geçiş
-  - [ ] Dual-write stratejisi (geçiş dönemi için hem AsyncStorage hem backend'e yazma)
   - [ ] Tek seferlik migration — mevcut AsyncStorage verisi ilk login'de backend'e taşınacak
   - [ ] `routes/index.ts` içinde `/closet` ve `/outfits` üzerine `authMiddleware` **geri eklenecek**
 - [ ] **Ayarlar → Hesap bölümü çok yalın** — giriş yapınca sadece "Giriş yapıldı" + "Çıkış Yap" görünüyor, gerçek kullanıcı bilgisi yok. `AuthContext` email'i hiç tutmuyor. Onboarding'de kullanıcı bilgisi toplanmaya başlayınca zenginleştirilecek. App Store yayınından SONRA, cilalama sprintinde.
@@ -53,6 +64,10 @@
 - [ ] Görsel içerik moderasyonu (uygunsuz fotoğraf kontrolü)
 - [ ] Android build + Play Store
 - [ ] `outfits.item_ids` → ayrı `outfit_items` junction tablosu (teknik borç)
+- [ ] `item/[id].tsx` ve `add-item.tsx` hâlâ eski `Colors.light` paletini kullanıyor — Atelier Couture'a (P.bg, Playfair, özel header) taşınacak (cilalama sprinti)
+- [ ] Fits analizinden onaylananlar: temel parça kütüphanesi (cold start), fotoğraf çekim rehberi (ilk kullanımda), cost-per-wear (fiyat alanı), "Sana nasıl seslenelim?"
+- [ ] Squircle köşeler (`borderCurve: 'continuous'`)
+- [ ] Güvenlik: `helmet`, CORS kontrolü, `pnpm audit`
 - [ ] `ColorSelector` component'indeki `defaultSizing` artık hiçbir yerden çağrılmıyor (her iki ekran da `size="compact"` kullanıyor) — ileride ya kaldırılıp `size` prop'u sadeleştirilmeli, ya da üçüncü bir kullanım yeri çıkarsa saklanmalı.
 
 ---

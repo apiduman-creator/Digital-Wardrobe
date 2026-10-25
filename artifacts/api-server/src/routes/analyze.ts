@@ -5,6 +5,10 @@ import { sql } from "drizzle-orm";
 
 const router: Router = Router();
 
+// Kullanıcıya gösterilen tek, sade hata mesajı — teknik detay içermez.
+const GENERIC_AI_ERROR =
+  "Fotoğraf şu an analiz edilemedi. Lütfen biraz sonra tekrar dene ya da bilgileri elle doldur.";
+
 // 10 istek / dakika / IP
 const analyzeLimiter = rateLimit({
   windowMs: 60 * 1000,
@@ -100,7 +104,9 @@ router.post("/", analyzeLimiter, async (req: Request, res: Response) => {
   // 4. API anahtarı
   const apiKey = process.env["ANTHROPIC_API_KEY"];
   if (!apiKey) {
-    res.status(500).json({ error: "Sunucu yapılandırma hatası: ANTHROPIC_API_KEY eksik." });
+    // Detay sadece sunucu loguna — kullanıcıya iç yapılandırma bilgisi gösterilmez
+    console.error("[analyze] ANTHROPIC_API_KEY tanımlı değil");
+    res.status(500).json({ error: GENERIC_AI_ERROR });
     return;
   }
 
@@ -154,15 +160,19 @@ Fotoğrafta kıyafet veya aksesuar YOKSA yalnızca şunu döndür:
     const data = (await anthropicRes.json()) as { content?: Array<{ text?: string }> };
     rawText = data?.content?.[0]?.text ?? "";
   } catch (err) {
+    // Ham hata (model adı, request_id, Anthropic mesajı) SADECE sunucu loguna
+    // yazılır; kullanıcıya teknik detay sızdırılmaz.
     const msg = err instanceof Error ? err.message : String(err);
-    res.status(502).json({ error: `AI servisi hatası: ${msg}` });
+    console.error("[analyze] AI servisi hatası:", msg);
+    res.status(502).json({ error: GENERIC_AI_ERROR });
     return;
   }
 
   // 6. JSON ayrıştır
   const jsonMatch = rawText.match(/\{[\s\S]*\}/);
   if (!jsonMatch) {
-    res.status(502).json({ error: "AI yanıtı ayrıştırılamadı." });
+    console.error("[analyze] AI yanıtında JSON bulunamadı:", rawText.slice(0, 200));
+    res.status(502).json({ error: GENERIC_AI_ERROR });
     return;
   }
 
@@ -170,7 +180,8 @@ Fotoğrafta kıyafet veya aksesuar YOKSA yalnızca şunu döndür:
   try {
     result = JSON.parse(jsonMatch[0]) as Record<string, unknown>;
   } catch {
-    res.status(502).json({ error: "AI yanıtı geçerli JSON değil." });
+    console.error("[analyze] AI yanıtı geçerli JSON değil:", jsonMatch[0].slice(0, 200));
+    res.status(502).json({ error: GENERIC_AI_ERROR });
     return;
   }
 
