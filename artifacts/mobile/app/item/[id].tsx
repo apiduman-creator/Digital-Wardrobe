@@ -31,6 +31,7 @@ const STATUS_OPTIONS: { value: ItemStatus; label: string; icon: React.ComponentP
 ];
 const seasonEmoji: Record<Season, string> = {
   spring: "🌸", summer: "☀️", fall: "🍂", winter: "❄️",
+  all: "🌍", // Season tipinde var; düzenleme ekranında seçenek olarak gösterilmiyor
 };
 
 // ─── Inline Delete Confirmation ───────────────────────────────────────────────

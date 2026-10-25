@@ -83,6 +83,7 @@ function SeasonMultiSelect({
     summer: "☀️",
     fall: "🍂",
     winter: "❄️",
+    all: "🌍", // Season tipinde var; kıyafet ekranında seçenek olarak gösterilmiyor
   };
 
   return (
