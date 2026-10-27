@@ -5,6 +5,7 @@ import { Swipeable } from "react-native-gesture-handler";
 import * as Haptics from "expo-haptics";
 import Colors from "@/constants/colors";
 import { Outfit, ClosetItem } from "@/context/ClosetContext";
+import { occasionLabel, seasonLabel } from "@/utils/labels";
 
 interface Props {
   outfit: Outfit;
@@ -83,10 +84,10 @@ export function OutfitCard({ outfit, items, onPress, onFavoriteToggle, onDelete 
 
         <View style={styles.metaRow}>
           <View style={[styles.badge, { backgroundColor: C.chip }]}>
-            <Text style={[styles.badgeText, { color: C.textSecondary }]}>{outfit.occasion}</Text>
+            <Text style={[styles.badgeText, { color: C.textSecondary }]}>{occasionLabel(outfit.occasion)}</Text>
           </View>
           <View style={[styles.badge, { backgroundColor: C.chip }]}>
-            <Text style={[styles.badgeText, { color: C.textSecondary }]}>{outfit.season}</Text>
+            <Text style={[styles.badgeText, { color: C.textSecondary }]}>{seasonLabel(outfit.season)}</Text>
           </View>
           <Text style={[styles.pieceCount, { color: C.textTertiary }]}>{outfitItems.length} parça</Text>
         </View>

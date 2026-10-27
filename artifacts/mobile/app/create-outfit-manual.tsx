@@ -14,6 +14,7 @@ import * as Haptics from "expo-haptics";
 import Colors, { OCCASIONS } from "@/constants/colors";
 import { useCloset, Category, Occasion, ClosetItem } from "@/context/ClosetContext";
 import { getColorContrastText, SEASON_LABELS } from "@/utils/outfitLogic";
+import { occasionLabel } from "@/utils/labels";
 
 // Categories that allow only ONE item (exclusive slots)
 const EXCLUSIVE_CATEGORIES: Category[] = [
@@ -252,7 +253,7 @@ export default function CreateOutfitManualScreen() {
               style={[styles.occChip, { backgroundColor: isSel ? C.tint : C.chip }]}
             >
               <Text style={[styles.occChipText, { color: isSel ? "#FFF" : C.textSecondary }]}>
-                {occ}
+                {occasionLabel(occ)}
               </Text>
             </Pressable>
           );

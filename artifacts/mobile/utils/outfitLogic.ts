@@ -4,6 +4,7 @@ import {
   OutfitSeason,
   Occasion,
 } from "@/context/ClosetContext";
+import { occasionLabel, parseOccasions } from "@/utils/labels";
 
 export interface GeneratedOutfit {
   top: ClosetItem | null;
@@ -53,14 +54,10 @@ export function suggestOutfitName(outfit: GeneratedOutfit): string {
   const parts: string[] = [];
   if (outfit.top) parts.push(outfit.top.color);
   if (outfit.bottom) parts.push(outfit.bottom.color);
-  if (outfit.top?.occasion) {
-    const raw = outfit.top.occasion;
-    const occasions: string[] = (() => { try { const p = JSON.parse(raw); return Array.isArray(p) ? p : [raw]; } catch { return [raw]; } })();
-    const first = occasions[0] ?? "";
-    const label = first.charAt(0).toUpperCase() + first.slice(1);
-    return `${label} ${parts.join(" & ")} Look`;
-  }
-  return `${parts.join(" & ")} Outfit`;
+  // Örn: "Günlük · Lacivert & Beyaz Kombin"
+  const first = parseOccasions(outfit.top?.occasion)[0];
+  const colors = parts.join(" & ");
+  return first ? `${occasionLabel(first)} · ${colors} Kombin` : `${colors} Kombin`;
 }
 
 export function getColorContrastText(hex: string): string {

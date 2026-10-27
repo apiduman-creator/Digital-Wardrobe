@@ -14,6 +14,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Colors from "@/constants/colors";
 import { useCloset } from "@/context/ClosetContext";
 import { getColorContrastText } from "@/utils/outfitLogic";
+import { categoryLabel, occasionLabel, seasonLabel, trUpper } from "@/utils/labels";
 
 export default function OutfitDetailScreen() {
   const C = Colors.light;
@@ -79,10 +80,10 @@ export default function OutfitDetailScreen() {
           <Text style={[styles.heroTitle, { color: C.text }]}>{outfit.name}</Text>
           <View style={styles.metaRow}>
             <View style={[styles.badge, { backgroundColor: C.chip }]}>
-              <Text style={[styles.badgeText, { color: C.textSecondary }]}>{outfit.occasion}</Text>
+              <Text style={[styles.badgeText, { color: C.textSecondary }]}>{occasionLabel(outfit.occasion)}</Text>
             </View>
             <View style={[styles.badge, { backgroundColor: C.chip }]}>
-              <Text style={[styles.badgeText, { color: C.textSecondary }]}>{outfit.season}</Text>
+              <Text style={[styles.badgeText, { color: C.textSecondary }]}>{seasonLabel(outfit.season)}</Text>
             </View>
           </View>
         </View>
@@ -140,7 +141,7 @@ export default function OutfitDetailScreen() {
                   style={[styles.pieceCard, { backgroundColor: item.colorHex || "#CCC" }]}
                 >
                   <Text style={[styles.pieceCat, { color: textColor, opacity: 0.7 }]}>
-                    {item.category.toUpperCase()}
+                    {trUpper(categoryLabel(item.category))}
                   </Text>
                   <Text style={[styles.pieceName, { color: textColor }]} numberOfLines={2}>
                     {item.name}

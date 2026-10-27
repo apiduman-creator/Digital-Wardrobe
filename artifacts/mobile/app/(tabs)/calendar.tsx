@@ -27,6 +27,7 @@ const P = {
   white:      "#FFFFFF",
 };
 import { useCloset } from "@/context/ClosetContext";
+import { occasionLabel, seasonLabel } from "@/utils/labels";
 
 const DAYS_SHORT = ["Pt", "Sa", "Ça", "Pe", "Cu", "Ct", "Pz"];
 const MONTHS_TR = [
@@ -214,7 +215,7 @@ function DayDetailModal({
                     </View>
                     <View style={styles.outfitInfo}>
                       <Text style={[styles.outfitName, { color: C.text }]}>{outfit.name}</Text>
-                      <Text style={[styles.outfitMeta, { color: C.textSecondary }]}>{outfit.occasion} · {outfit.season}</Text>
+                      <Text style={[styles.outfitMeta, { color: C.textSecondary }]}>{occasionLabel(outfit.occasion)} · {seasonLabel(outfit.season)}</Text>
                     </View>
                     {isCurrentlySelected && <Feather name="check" size={18} color={C.tint} />}
                   </Pressable>

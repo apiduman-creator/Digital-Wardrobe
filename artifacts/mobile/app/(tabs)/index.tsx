@@ -17,6 +17,7 @@ import { Feather } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { router } from "expo-router";
 import { CATEGORIES } from "@/constants/colors";
+import { categoryLabel, seasonLabels, trUpper } from "@/utils/labels";
 import { useCloset } from "@/context/ClosetContext";
 
 // ─── Palette — Atelier Couture ────────────────────────────────────────────────
@@ -67,9 +68,6 @@ const STATUS_BADGE: Record<string, { label: string; color: string; bg: string }>
   "dry-cleaning": { label: "Kuru Temizleme", color: "#9B72CF", bg: "#F3EDFF" },
 };
 
-const SEASON_TR: Record<string, string> = {
-  spring: "İlkbahar", summer: "Yaz", fall: "Sonbahar", winter: "Kış", all: "Tüm Mevsimler",
-};
 
 // ─── Screen ────────────────────────────────────────────────────────────────────
 export default function ClosetScreen() {
@@ -111,7 +109,7 @@ export default function ClosetScreen() {
       {/* Title row: [titleBlock flex:1] [addBtn] */}
       <View style={styles.titleRow}>
         <View style={styles.titleBlock}>
-          <Text style={styles.titleSub}>Dijital</Text>
+          <Text style={styles.titleSub}>{trUpper("Dijital")}</Text>
           <Text style={styles.titleMain}>Gardırop</Text>
           <Text style={styles.itemCount}>
             {filtered.length} parça{readyOnly ? "  ·  Giymeye hazır" : ""}
@@ -281,10 +279,9 @@ export default function ClosetScreen() {
               extrapolate: "clamp",
             });
 
-            // Dört mevsimin hepsi seçiliyse "Tüm Mevsimler", değilse ilk mevsim
-            const itemSeasons = item.seasons ?? [];
-            const season: string =
-              itemSeasons.length >= 4 ? "all" : (itemSeasons[0] ?? "");
+            // Tüm seçili mevsimler (takvim sırasıyla); dördü birden ise tek "Tüm Mevsimler"
+            const seasonTags = seasonLabels(item.seasons);
+            const categoryText = trUpper(categoryLabel(item.category));
             const colorHex = item.colorHex || "#C9A96E";
 
             return (
@@ -335,7 +332,7 @@ export default function ClosetScreen() {
                     {/* Category pill + fav button */}
                     <View style={styles.cardTopRow}>
                       <View style={styles.categoryPill}>
-                        <Text style={styles.categoryPillText}>{item.category}</Text>
+                        <Text style={styles.categoryPillText}>{categoryText}</Text>
                       </View>
                       <Pressable
                         onPress={() => toggleFavorite(item.id)}
@@ -374,7 +371,7 @@ export default function ClosetScreen() {
                   <View style={styles.cardInfo}>
                     {/* Category label — small caps, terracotta */}
                     <Text style={styles.cardCategoryLabel}>
-                      {item.category.toUpperCase()}
+                      {categoryText}
                     </Text>
 
                     {/* Item name — Playfair Display */}
@@ -389,12 +386,14 @@ export default function ClosetScreen() {
                       </Text>
                     ) : null}
 
-                    {/* Tags row — sadece mevsim */}
-                    {season ? (
+                    {/* Tags row — mevsimler */}
+                    {seasonTags.length > 0 ? (
                       <View style={styles.tagsRow}>
-                        <View style={styles.tag}>
-                          <Text style={styles.tagText}>{SEASON_TR[season] ?? season}</Text>
-                        </View>
+                        {seasonTags.map((label) => (
+                          <View key={label} style={styles.tag}>
+                            <Text style={styles.tagText}>{label}</Text>
+                          </View>
+                        ))}
                       </View>
                     ) : null}
 

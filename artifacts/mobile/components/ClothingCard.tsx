@@ -5,7 +5,8 @@ import Animated, { useSharedValue, useAnimatedStyle, withSpring } from "react-na
 import * as Haptics from "expo-haptics";
 import Colors from "@/constants/colors";
 import { ClosetItem } from "@/context/ClosetContext";
-import { getColorContrastText, SEASON_LABELS } from "@/utils/outfitLogic";
+import { getColorContrastText } from "@/utils/outfitLogic";
+import { categoryLabel, seasonLabels } from "@/utils/labels";
 
 interface Props {
   item: ClosetItem;
@@ -52,7 +53,7 @@ export function ClothingCard({ item, onPress, onFavoriteToggle, size = "large" }
             />
           ) : null}
           <Text style={[styles.categoryLabel, { color: item.imageUri ? "#FFF" : textOnColor, opacity: 0.85, zIndex: 1 }]}>
-            {item.category}
+            {categoryLabel(item.category)}
           </Text>
           <Pressable onPress={handleFavorite} style={styles.favoriteBtn} hitSlop={8}>
             <Feather
@@ -79,7 +80,7 @@ export function ClothingCard({ item, onPress, onFavoriteToggle, size = "large" }
             </Text>
             <Text style={[styles.dot, { color: C.textTertiary }]}>·</Text>
             <Text style={[styles.tag, { color: C.textTertiary }]}>
-              {(item.seasons ?? []).slice(0, 2).map((s) => SEASON_LABELS[s] ?? s).join(", ")}
+              {seasonLabels(item.seasons).slice(0, 2).join(", ")}
             </Text>
           </View>
         </View>

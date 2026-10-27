@@ -348,7 +348,7 @@ export default function OnboardingScreen() {
               resizeMode="contain"
             />
 
-            <Text style={styles.welcomeTitle}>Gardırobin hazır!</Text>
+            <Text style={styles.welcomeTitle}>Gardırobun hazır!</Text>
             <Text style={styles.welcomeSubtitle}>Her şey seni bekliyor.</Text>
             <Text style={styles.welcomeBody}>
               Kıyafetlerini eklemeye ve harika kombinler oluşturmaya hemen başlayabilirsin.

@@ -19,6 +19,7 @@ import { useCloset, Category, Season, Occasion } from "@/context/ClosetContext";
 import { useCalendar } from "@/context/CalendarContext";
 import { getColorContrastText, SEASON_LABELS } from "@/utils/outfitLogic";
 import { ColorSelector, ColorSelectorResult } from "@/components/ColorSelector";
+import { categoryLabel, occasionLabel, parseOccasions, trUpper } from "@/utils/labels";
 
 const ITEM_SEASONS: Season[] = ["spring", "summer", "fall", "winter"];
 
@@ -188,7 +189,7 @@ function EditSheet({
                     <Pressable key={occ} onPress={() => toggleOccasion(occ as Occasion)}
                       style={[styles.chip, { backgroundColor: isSel ? C.tint : C.chip, flexDirection: "row", alignItems: "center", gap: 5 }]}>
                       {isSel && <Feather name="check" size={12} color="#FFF" />}
-                      <Text style={[styles.chipText, { color: isSel ? "#FFF" : C.textSecondary }]}>{occ}</Text>
+                      <Text style={[styles.chipText, { color: isSel ? "#FFF" : C.textSecondary }]}>{occasionLabel(occ)}</Text>
                     </Pressable>
                   );
                 })}
@@ -319,7 +320,7 @@ export default function ItemDetailScreen() {
           ) : null}
           <View style={item.imageUri ? styles.heroOverlay : undefined}>
             <Text style={[styles.heroCategory, { color: textColor, opacity: item.imageUri ? 1 : 0.7 }]}>
-              {item.category.toUpperCase()}
+              {trUpper(categoryLabel(item.category))}
             </Text>
             <Text style={[styles.heroName, { color: textColor }]}>{item.name}</Text>
             {item.brand && (
@@ -421,9 +422,9 @@ export default function ItemDetailScreen() {
         {/* Details */}
         <View style={[styles.detailCard, { backgroundColor: C.card, borderColor: C.cardBorder }]}>
           <DetailRow label="Renk" value={item.color} />
-          <DetailRow label="Kategori" value={item.category} capitalize />
+          <DetailRow label="Kategori" value={categoryLabel(item.category)} />
           <DetailRow label="Mevsim" value={seasonsDisplay} />
-          <DetailRow label="Kullanım" value={(() => { try { const p = JSON.parse(item.occasion); return Array.isArray(p) ? p.join(", ") : item.occasion; } catch { return item.occasion; } })()} capitalize />
+          <DetailRow label="Kullanım" value={parseOccasions(item.occasion).map(occasionLabel).join(", ") || "—"} />
           {item.brand && <DetailRow label="Marka" value={item.brand} />}
           {item.notes && <DetailRow label="Notlar" value={item.notes} />}
         </View>

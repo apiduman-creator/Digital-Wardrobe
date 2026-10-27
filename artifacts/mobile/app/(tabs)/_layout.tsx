@@ -19,7 +19,7 @@ function NativeTabLayout() {
       </NativeTabs.Trigger>
       <NativeTabs.Trigger name="outfits">
         <Icon sf={{ default: "sparkles", selected: "sparkles" }} />
-        <Label>Kombins</Label>
+        <Label>Kombinler</Label>
       </NativeTabs.Trigger>
       <NativeTabs.Trigger name="calendar">
         <Icon sf={{ default: "calendar", selected: "calendar" }} />
@@ -77,7 +77,7 @@ function ClassicTabLayout() {
       <Tabs.Screen
         name="outfits"
         options={{
-          title: "Kombins",
+          title: "Kombinler",
           tabBarIcon: ({ color }) =>
             isIOS ? (
               <SymbolView name="sparkles" tintColor={color} size={24} />
