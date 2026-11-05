@@ -148,3 +148,7 @@ overrides:
   #   path-to-regexp: ReDoS (GHSA-j3q9-mxjg-w52f), 8.4.0'da düzeltildi
   proxy-addr: ^2.0.8
   path-to-regexp: ^8.4.2
+  # express@5.2.1 zaten ^2.2.1 izin veriyor, sadece lockfile bayattı.
+  # Yalnızca api-server'da kullanılıyor (mobile'da yok — bkz. `pnpm -r why`).
+  # DoS via trailing bytes (GHSA-vc2v-76pw-4v95), 2.4.0'da düzeltildi.
+  body-parser: ^2.4.0
