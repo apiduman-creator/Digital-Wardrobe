@@ -27,7 +27,7 @@ const P = {
   white:      "#FFFFFF",
 };
 import { useCloset } from "@/context/ClosetContext";
-import { occasionLabel, seasonLabel } from "@/utils/labels";
+import { occasionLabel, seasonLabel, trUpper } from "@/utils/labels";
 
 const DAYS_SHORT = ["Pt", "Sa", "Ça", "Pe", "Cu", "Ct", "Pz"];
 const MONTHS_TR = [
@@ -181,14 +181,14 @@ function DayDetailModal({
 
           {/* Outfit picker */}
           <Text style={[styles.modalSubtitle, { color: C.textSecondary }]}>
-            {existing ? "Farklı kombin seç" : "Hangi kombini giydini?"}
+            {trUpper(existing ? "Farklı kombin seç" : "Hangi kombini giydin?")}
           </Text>
 
           {outfits.length === 0 ? (
             <View style={styles.emptyPicker}>
               <Feather name="layers" size={28} color={C.textTertiary} />
               <Text style={[styles.emptyPickerText, { color: C.textSecondary }]}>
-                Henüz kayıtlı kombin yok.{"\n"}Kombins sekmesinden oluşturun.
+                Henüz kayıtlı kombin yok.{"\n"}Kombinler sekmesinden oluşturun.
               </Text>
             </View>
           ) : (
@@ -302,7 +302,7 @@ export default function CalendarScreen() {
           },
         ]}
       >
-        <Text style={styles.subtitle}>Giyim</Text>
+        <Text style={styles.subtitle}>{trUpper("Giyim")}</Text>
         <Text style={styles.title}>Takvimi</Text>
       </View>
 
@@ -362,7 +362,7 @@ export default function CalendarScreen() {
         {loggedList.length > 0 && (
           <View style={styles.logSection}>
             <Text style={[styles.logTitle, { color: C.textSecondary }]}>
-              {MONTHS_TR[month]} Giyim Geçmişi
+              {trUpper(`${MONTHS_TR[month]} Giyim Geçmişi`)}
             </Text>
             {loggedList.map((entry) => {
               const [, m, d] = entry.date.split("-").map(Number);
@@ -376,7 +376,7 @@ export default function CalendarScreen() {
                 >
                   <View style={[styles.logDateBox, { backgroundColor: C.chip }]}>
                     <Text style={[styles.logDay, { color: C.tint }]}>{d}</Text>
-                    <Text style={[styles.logMonth, { color: C.textSecondary }]}>{MONTHS_TR[m - 1].slice(0, 3)}</Text>
+                    <Text style={[styles.logMonth, { color: C.textSecondary }]}>{trUpper(MONTHS_TR[m - 1].slice(0, 3))}</Text>
                   </View>
                   <View style={styles.logInfo}>
                     <Text style={[styles.logOutfitName, { color: C.text }]} numberOfLines={1}>{label}</Text>

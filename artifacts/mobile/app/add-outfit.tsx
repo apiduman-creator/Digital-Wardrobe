@@ -14,6 +14,7 @@ import { router } from "expo-router";
 import * as Haptics from "expo-haptics";
 import Animated, { useSharedValue, useAnimatedStyle, withSpring } from "react-native-reanimated";
 import Colors, { SEASONS, OCCASIONS } from "@/constants/colors";
+import { trUpper } from "@/utils/labels";
 import { useCloset, OutfitSeason, Occasion, ClosetItem } from "@/context/ClosetContext";
 import { generateRandomOutfit, GeneratedOutfit, suggestOutfitName } from "@/utils/outfitLogic";
 import { getColorContrastText } from "@/utils/outfitLogic";
@@ -32,7 +33,7 @@ function PieceCard({ item, role }: { item: ClosetItem | null; role: string }) {
   const textColor = getColorContrastText(item.colorHex || "#999");
   return (
     <View style={[styles.pieceCard, { backgroundColor: item.colorHex || "#CCC", borderColor: "transparent" }]}>
-      <Text style={[styles.pieceRole, { color: textColor, opacity: 0.7 }]}>{role.toUpperCase()}</Text>
+      <Text style={[styles.pieceRole, { color: textColor, opacity: 0.7 }]}>{trUpper(role)}</Text>
       <Text style={[styles.pieceName, { color: textColor }]} numberOfLines={2}>
         {item.name}
       </Text>
@@ -169,7 +170,7 @@ export default function AddOutfitScreen() {
       >
         {/* Filter Section */}
         <View style={styles.section}>
-          <Text style={[styles.sectionTitle, { color: C.textSecondary }]}>Mevsim</Text>
+          <Text style={[styles.sectionTitle, { color: C.textSecondary }]}>{trUpper("Mevsim")}</Text>
           <ChipRow
             options={seasonOptions}
             selected={season}
@@ -209,7 +210,7 @@ export default function AddOutfitScreen() {
         {/* Generated Outfit Preview */}
         {generated && (
           <Animated.View style={[animStyle, styles.previewSection]}>
-            <Text style={[styles.sectionTitle, { color: C.textSecondary }]}>Oluşturulan Kombin</Text>
+            <Text style={[styles.sectionTitle, { color: C.textSecondary }]}>{trUpper("Oluşturulan Kombin")}</Text>
 
             <View style={styles.piecesGrid}>
               {generated.top && <PieceCard item={generated.top} role="Üst" />}
@@ -220,7 +221,7 @@ export default function AddOutfitScreen() {
 
             {/* Name Input */}
             <View style={styles.section}>
-              <Text style={[styles.sectionTitle, { color: C.textSecondary }]}>Kombin Adı</Text>
+              <Text style={[styles.sectionTitle, { color: C.textSecondary }]}>{trUpper("Kombin Adı")}</Text>
               <TextInput
                 value={name}
                 onChangeText={setName}

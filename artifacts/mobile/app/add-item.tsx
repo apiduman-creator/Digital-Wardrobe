@@ -19,6 +19,7 @@ import * as ImageManipulator from "expo-image-manipulator";
 import * as FileSystem from "expo-file-system/legacy";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import Colors, { CATEGORIES, OCCASIONS } from "@/constants/colors";
+import { trUpper } from "@/utils/labels";
 import { useCloset, Category, Season, Occasion } from "@/context/ClosetContext";
 import { SEASON_LABELS } from "@/utils/outfitLogic";
 import { ColorSelector, ColorSelectorResult } from "@/components/ColorSelector";
@@ -40,7 +41,7 @@ function ChipSelector({
   const C = Colors.light;
   return (
     <View style={styles.fieldGroup}>
-      <Text style={[styles.label, { color: C.textSecondary }]}>{label}</Text>
+      <Text style={[styles.label, { color: C.textSecondary }]}>{trUpper(label)}</Text>
       <View style={styles.chipWrap}>
         {options.map((opt) => {
           const isSelected = selected === opt.value;
@@ -89,7 +90,7 @@ function SeasonMultiSelect({
   return (
     <View style={styles.fieldGroup}>
       <View style={styles.labelRow}>
-        <Text style={[styles.label, { color: C.textSecondary }]}>Mevsim *</Text>
+        <Text style={[styles.label, { color: C.textSecondary }]}>{trUpper("Mevsim *")}</Text>
         {selected.length === 4 && (
           <Text style={[styles.labelHint, { color: C.tint }]}>Tüm mevsimler</Text>
         )}
@@ -164,7 +165,6 @@ export default function AddItemScreen() {
       Alert.alert("Yapılandırma Hatası", "EXPO_PUBLIC_API_URL .env dosyasında tanımlı değil.");
       return;
     }
-    console.log("[analyzeImage] fetch URL:", `${apiUrl}/api/analyze-clothing`);
     setAnalyzing(true);
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 60000);
@@ -413,7 +413,7 @@ export default function AddItemScreen() {
         {/* ── AI Fotoğraf Analizi ──────────────────────────────────────────── */}
         <View style={styles.fieldGroup}>
           <View style={styles.labelRow}>
-            <Text style={[styles.label, { color: C.textSecondary }]}>AI ile Otomatik Doldur</Text>
+            <Text style={[styles.label, { color: C.textSecondary }]}>{trUpper("AI ile Otomatik Doldur")}</Text>
             {aiDone && (
               <View style={styles.aiDoneBadge}>
                 <Feather name="check-circle" size={11} color="#34C759" />
@@ -512,7 +512,7 @@ export default function AddItemScreen() {
 
         {/* Brand */}
         <View style={styles.fieldGroup}>
-          <Text style={[styles.label, { color: C.textSecondary }]}>Marka (opsiyonel)</Text>
+          <Text style={[styles.label, { color: C.textSecondary }]}>{trUpper("Marka (opsiyonel)")}</Text>
           <TextInput
             value={brand}
             onChangeText={setBrand}
@@ -579,7 +579,7 @@ export default function AddItemScreen() {
 
         {/* Notes */}
         <View style={styles.fieldGroup}>
-          <Text style={[styles.label, { color: C.textSecondary }]}>Notlar (opsiyonel)</Text>
+          <Text style={[styles.label, { color: C.textSecondary }]}>{trUpper("Notlar (opsiyonel)")}</Text>
           <TextInput
             value={notes}
             onChangeText={setNotes}

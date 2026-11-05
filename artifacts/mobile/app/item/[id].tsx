@@ -143,7 +143,7 @@ function EditSheet({
             </View>
 
             <View style={styles.editField}>
-              <Text style={[styles.editLabel, { color: C.textSecondary }]}>Kategori</Text>
+              <Text style={[styles.editLabel, { color: C.textSecondary }]}>{trUpper("Kategori")}</Text>
               <View style={styles.chipWrap}>
                 {categoryOptions.map((cat) => {
                   const isSel = category === cat.id;
@@ -164,7 +164,7 @@ function EditSheet({
             />
 
             <View style={styles.editField}>
-              <Text style={[styles.editLabel, { color: C.textSecondary }]}>Mevsim (çoklu)</Text>
+              <Text style={[styles.editLabel, { color: C.textSecondary }]}>{trUpper("Mevsim (çoklu)")}</Text>
               <View style={styles.chipWrap}>
                 {ITEM_SEASONS.map((s) => {
                   const isSel = seasons.includes(s);
@@ -431,7 +431,7 @@ export default function ItemDetailScreen() {
 
         {/* Wear Stats */}
         <View style={[styles.statsCard, { backgroundColor: C.card, borderColor: C.cardBorder }]}>
-          <Text style={[styles.statsTitle, { color: C.textSecondary }]}>İstatistikler</Text>
+          <Text style={[styles.statsTitle, { color: C.textSecondary }]}>{trUpper("İstatistikler")}</Text>
           <View style={styles.statsRow}>
             <View style={styles.statItem}>
               <Text style={[styles.statValue, { color: C.tint }]}>{item.wearCount}</Text>

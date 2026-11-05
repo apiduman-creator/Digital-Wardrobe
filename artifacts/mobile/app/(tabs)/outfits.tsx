@@ -13,6 +13,7 @@ import { Feather } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { router } from "expo-router";
 import Colors from "@/constants/colors";
+import { trUpper } from "@/utils/labels";
 import { useCloset } from "@/context/ClosetContext";
 
 const P = {
@@ -83,7 +84,7 @@ export default function OutfitsScreen() {
           },
         ]}
       >
-        <Text style={styles.subtitle}>Kombin</Text>
+        <Text style={styles.subtitle}>{trUpper("Kombin")}</Text>
         <Text style={styles.title}>Koleksiyonu</Text>
 
         {/* Filtreler — header içinde, yatay kaydırılabilir */}

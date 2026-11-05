@@ -14,7 +14,7 @@ import * as Haptics from "expo-haptics";
 import Colors, { OCCASIONS } from "@/constants/colors";
 import { useCloset, Category, Occasion, ClosetItem } from "@/context/ClosetContext";
 import { getColorContrastText, SEASON_LABELS } from "@/utils/outfitLogic";
-import { occasionLabel } from "@/utils/labels";
+import { occasionLabel, trUpper } from "@/utils/labels";
 
 // Categories that allow only ONE item (exclusive slots)
 const EXCLUSIVE_CATEGORIES: Category[] = [
@@ -210,7 +210,7 @@ export default function CreateOutfitManualScreen() {
       {selectedItems.length > 0 ? (
         <View style={styles.selectedPreview}>
           <Text style={[styles.sectionTitle, { color: C.textSecondary }]}>
-            Seçilen Parçalar ({selectedItems.length})
+            {trUpper(`Seçilen Parçalar (${selectedItems.length})`)}
           </Text>
           <View style={styles.selectedChips}>
             {selectedItems.map((item) => (
@@ -260,7 +260,7 @@ export default function CreateOutfitManualScreen() {
         })}
       </View>
 
-      <Text style={[styles.pickerTitle, { color: C.textSecondary }]}>Gardıroptaki Parçalar</Text>
+      <Text style={[styles.pickerTitle, { color: C.textSecondary }]}>{trUpper("Gardıroptaki Parçalar")}</Text>
     </View>
   ), [C, selectedItems, name, occasion]);
 
@@ -277,7 +277,7 @@ export default function CreateOutfitManualScreen() {
         renderSectionHeader={({ section }) => (
           <View style={[styles.sectionHeader, { backgroundColor: C.backgroundSecondary }]}>
             <Text style={[styles.sectionTitle, { color: C.textSecondary }]}>
-              {section.label}
+              {trUpper(section.label)}
             </Text>
             {selectedByCategory[section.title] && (
               <View style={[styles.sectionSelectedBadge, { backgroundColor: C.tint }]}>

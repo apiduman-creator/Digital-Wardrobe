@@ -115,11 +115,9 @@ export default function RootLayout() {
 
   useEffect(() => {
     AsyncStorage.getItem("onboarding_completed").then((val) => {
-      console.log("[RootLayout] onboarding_completed raw value:", val);
       const done = !!val;
       setOnboardingDone(done);
       setOnboardingChecked(true);
-      console.log("[RootLayout] initialRoute →", done ? "(tabs)" : "onboarding");
     });
   }, []);
 
